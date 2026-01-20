@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Samsara — Sacred Circle</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/circle.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="portal-bg">
+
+  <div class="rite-field" id="riteField"></div>
+  <div class="background-sigil"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="center-whisper">
+    <span>This is only the beginning</span>
+  </div>
+
+  <main class="circle-container">
+    <div class="circle-title">SACRED CIRCLE</div>
+  </main>
+  <!-- ===============================
+     MEMBER PROFILE MODAL
+================================ -->
+<!-- ===============================
+     MEMBER PROFILE MODAL
+================================ -->
+<div class="member-profile" id="memberProfile" style="display:none;">
+  <div class="member-profile-inner">
+
+    <button
+      class="profile-close-btn"
+      onclick="closeMemberProfile()"
+      aria-label="Close">
+      ×
+    </button>
+
+    <h2 id="profileUsername"></h2>
+
+    <textarea
+      id="profileBio"
+      placeholder="Write a short description of who you are…"
+      rows="5">
+    </textarea>
+
+    <div class="profile-projects" id="profileProjects"></div>
+
+    <button
+      id="profileSaveBtn"
+      class="project-action-btn"
+      style="display:none;">
+      Save Profile
+    </button>
+
+  </div>
+</div>
+
+
+
+</div>
+
+<div class="circle-toggle">
+  <a href="samsara.html">PROJECT FIELD</a>
+</div>
+
+<script type="module" src="scripts/circle.js"></script>
+</body>
+</html>

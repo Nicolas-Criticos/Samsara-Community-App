@@ -1,0 +1,37 @@
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.auth-card {
+  background: rgba(255,255,255,0.7);
+  padding: 3rem;
+  border-radius: 18px;
+  backdrop-filter: blur(8px);
+  text-align: center;
+  width: 320px;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 0.8rem;
+  margin: 0.6rem 0;
+  border-radius: 10px;
+  border: none;
+}
+
+.auth-card button {
+  width: 100%;
+  margin-top: 0.8rem;
+  padding: 0.8rem;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent-earth);
+  color: white;
+  cursor: pointer;
+}

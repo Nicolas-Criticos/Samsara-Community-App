@@ -1,0 +1,228 @@
+/* ===============================
+   VRISCHGEWAGT — DARK REALM CORE
+=============================== */
+
+body[data-realm="vrischgewagt"] {
+  background: #0f0f0f;
+  color: rgba(235, 230, 220, 0.92);
+}
+
+/* ===============================
+   PORTAL BACKGROUND
+=============================== */
+
+
+/* =========================================
+   VRISCHGEWAGT — PORTAL BACKGROUND (FIXED)
+========================================= */
+
+body[data-realm="vrischgewagt"] .portal-bg {
+  position: fixed;
+  inset: 0;
+  min-height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+
+  /* IMAGE + DARK VEIL */
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(0,0,0,0.45),
+      rgba(0,0,0,0.92)
+    ),
+
+    url("../assets/images/vg-logo.png") center / 40% no-repeat;
+
+  z-index: 0;
+    
+}
+
+/* REMOVE SAMSARA SIGIL */
+body[data-realm="vrischgewagt"] .background-sigil {
+  display: none !important;
+}
+
+
+/* Central void / portal */
+body[data-realm="vrischgewagt"] .portal-bg::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  pointer-events: none;
+  z-index: 1;
+
+  background: radial-gradient(
+    circle at center,
+   rgba(110, 124, 78, 0.82) 0%,
+rgba(148, 156, 104, 0.62) 28%,
+rgba(186, 190, 142, 0.36) 46%,
+rgba(0, 0, 0, 0.0) 72%
+
+
+
+  );
+
+  animation: vrischVoidBreath 14s ease-in-out infinite;
+}
+
+@keyframes vrischVoidBreath {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+/* ===============================
+   PROJECT NODES
+=============================== */
+
+body[data-realm="vrischgewagt"] .project-node {
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(60,60,60,0.95),
+    rgba(30,30,30,0.85)
+  );
+
+  color: rgba(230,225,215,0.85);
+
+  box-shadow:
+    0 12px 30px rgba(0,0,0,0.65),
+    inset 0 0 18px rgba(255,255,255,0.05);
+
+  animation:
+    nodeFadeIn 3s ease forwards,
+    nodeBreath 9s ease-in-out infinite;
+}
+
+/* ===============================
+   TEXT VISIBILITY
+=============================== */
+
+body[data-realm="vrischgewagt"] h2,
+body[data-realm="vrischgewagt"] h3 {
+  color: rgba(245, 240, 230, 0.95);
+}
+
+body[data-realm="vrischgewagt"] p {
+  color: rgba(220, 215, 205, 0.85);
+}
+
+body[data-realm="vrischgewagt"] .project-meta,
+body[data-realm="vrischgewagt"] .project-meta-line {
+  color: rgba(210, 205, 195, 0.75);
+}
+
+/* Headers / navigation */
+body[data-realm="vrischgewagt"] .field-header,
+body[data-realm="vrischgewagt"] .field-header a {
+  color: rgba(235, 230, 220, 0.75);
+}
+
+body[data-realm="vrischgewagt"] .field-header a:hover {
+  color: rgba(255, 250, 240, 0.95);
+}
+
+/* Realm switch */
+body[data-realm="vrischgewagt"] .realm-switch span {
+  color: rgba(230, 225, 215, 0.8);
+}
+
+body[data-realm="vrischgewagt"] .realm-switch span.active {
+  color: rgba(255, 250, 240, 1);
+}
+
+/* ===============================
+   PROJECT DETAIL (SOFT DARK)
+=============================== */
+
+body[data-realm="vrischgewagt"] .project-detail {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+body[data-realm="vrischgewagt"] .project-detail-inner {
+  background: radial-gradient(
+    circle at center,
+    rgba(32, 32, 32, 0.96),
+    rgba(18, 18, 18, 0.92)
+  );
+
+  box-shadow:
+    0 0 45px rgba(0, 0, 0, 0.9),
+    inset 0 0 28px rgba(255, 255, 255, 0.035);
+
+  color: rgba(235, 230, 220, 0.92);
+}
+
+body[data-realm="vrischgewagt"] .project-detail-inner img {
+  filter: brightness(0.88) contrast(0.95);
+}
+
+/* Close button */
+body[data-realm="vrischgewagt"] .project-close-btn {
+  background: rgba(255,255,255,0.08);
+  color: rgba(235,230,220,0.7);
+}
+
+body[data-realm="vrischgewagt"] .project-close-btn:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+/* ===============================
+   PROJECT CREATE (FORCED DARK)
+=============================== */
+
+body[data-realm="vrischgewagt"] .project-create {
+  background: rgba(0, 0, 0, 0.82);
+}
+
+body[data-realm="vrischgewagt"] .project-create-inner {
+  background: radial-gradient(
+    circle at center,
+    rgba(26, 26, 26, 0.96),
+    rgba(10, 10, 10, 0.94)
+  );
+
+  box-shadow:
+    0 0 55px rgba(0, 0, 0, 0.9),
+    inset 0 0 28px rgba(255, 255, 255, 0.035);
+
+  color: rgba(235, 230, 220, 0.92);
+}
+
+/* Inputs */
+body[data-realm="vrischgewagt"] .project-create-inner input,
+body[data-realm="vrischgewagt"] .project-create-inner textarea {
+  background: rgba(255,255,255,0.05);
+  color: rgba(240,235,225,0.9);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+body[data-realm="vrischgewagt"] .project-create-inner input::placeholder,
+body[data-realm="vrischgewagt"] .project-create-inner textarea::placeholder {
+  color: rgba(200,195,185,0.45);
+}
+
+/* Status labels */
+body[data-realm="vrischgewagt"] .project-status-select label {
+  color: rgba(225,220,210,0.85);
+}
+
+/* ===============================
+   BUTTONS
+=============================== */
+
+body[data-realm="vrischgewagt"] .project-action-open {
+  background: radial-gradient(circle, #7f8f6a, #4e5c3f);
+}
+
+body[data-realm="vrischgewagt"] .project-action-application {
+  background: radial-gradient(circle, #8a6a3f, #4a3520);
+}
+
+body[data-realm="vrischgewagt"] .project-action-closed {
+  background: radial-gradient(circle, #5a3a3a, #2a1414);
+}
+
+body[data-realm="vrischgewagt"] button.ghost {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(220,215,205,0.6);
+}

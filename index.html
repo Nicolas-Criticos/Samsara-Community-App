@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Samsara</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/auth.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div id="authGate" class="auth-gate">
+  <div class="auth-card">
+
+    <h2 id="authTitle">Login</h2>
+
+    <input id="email" type="email" placeholder="Email" />
+
+    <div id="loginStage">
+      <input id="password" type="password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <p><a href="#" onclick="showSignup()">No account? Sign up</a></p>
+    </div>
+
+    <div id="signupStage" style="display:none;">
+      <input id="username" placeholder="Username" />
+      <input id="passwordSignup" type="password" placeholder="Create password" />
+      <input id="passwordConfirm" type="password" placeholder="Repeat password" />
+      <button onclick="signup()">Create account</button>
+      <p><a href="#" onclick="showLogin()">Back to login</a></p>
+    </div>
+
+    <p id="authError"></p>
+  </div>
+</div>
+
+<script type="module" src="scripts/auth.js"></script>
+</body>
+</html>

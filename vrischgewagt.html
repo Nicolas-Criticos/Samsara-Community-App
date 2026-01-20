@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Samsara — Project Field</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- CORE STYLES -->
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/circle.css" />
+  <link rel="stylesheet" href="styles/projects.css" />
+  <link rel="stylesheet" href="styles/vrischgewagt.css" />
+
+
+  <!-- SUPABASE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body data-realm="vrischgewagt">
+
+<!-- =====================================================
+     PORTAL BACKGROUND
+===================================================== -->
+<div class="portal-bg">
+
+   <!-- REALM SWITCH -->
+  <div class="realm-switch">
+    <span>SAMSARA</span>
+
+    <label class="switch">
+      <input type="checkbox" id="realmToggle" checked />
+      <span class="slider"></span>
+    </label>
+
+    <span class="active">VRISCHGEWAGT</span>
+  </div>
+
+  <!-- ADD PROJECT BUTTON -->
+  <div class="project-add">
+    <button
+      class="project-action-open"
+      aria-label="Seed Project"
+      onclick="window.openProjectCreate()">
+      ＋
+    </button>
+  </div>
+
+  <!-- PROJECT FIELD -->
+  <div class="project-field" id="projectField"></div>
+
+  <!-- BACKGROUND -->
+  <div class="background-sigil"></div>
+  <div class="particles" id="particles"></div>
+
+  <!-- HEADER -->
+  <div class="field-header field-header-project">
+    <a href="circle.html" class="ghost">← RETURN TO CIRCLE</a>
+  </div>
+
+</div>
+
+<!-- =====================================================
+     PROJECT DETAIL
+===================================================== -->
+<div class="project-detail" id="projectDetail">
+  <div class="project-detail-inner">
+
+    <button
+      class="project-close-btn"
+      onclick="window.closeProjectDetail()">
+      ×
+    </button>
+
+    <div></div>
+
+    <img id="detailProjectImage" />
+    <h2 id="detailProjectTitle"></h2>
+    <p id="detailProjectDescription"></p>
+
+    <div id="projectStatusControl"></div>
+
+    <div class="project-meta">
+      <div id="detailProjectCreator"></div>
+      <div id="detailProjectContributors"></div>
+      <div id="detailProjectRoles"></div>
+    </div>
+
+    <div class="project-action-ring">
+      <button id="detailProjectAction" class="project-action-btn"></button>
+    </div>
+
+  </div>
+</div>
+
+<!-- =====================================================
+     PROJECT CREATE MODAL
+===================================================== -->
+<div class="project-create" id="projectCreate" style="display:none;">
+  <div class="project-create-inner">
+
+    <h3>Seed a Project</h3>
+
+    <input
+      id="createProjectTitle"
+      class="project-input"
+      placeholder="Project name"
+      autocomplete="off" />
+
+    <textarea
+      id="createProjectDescription"
+      class="project-textarea"
+      placeholder="Project description"></textarea>
+
+    <textarea
+      id="createProjectTimeline"
+      class="project-textarea"
+      placeholder="Timeline / rhythm"></textarea>
+
+    <input
+      type="file"
+      id="projectImageUpload"
+      class="project-file"
+      accept="image/*" />
+
+    <!-- STATUS SELECTION -->
+    <div class="project-status-select">
+      <label>
+        <input type="radio" name="projectStatus" value="open" checked />
+        🟢 Open contribution
+      </label>
+
+      <label>
+        <input type="radio" name="projectStatus" value="application" />
+        🟠 By application
+      </label>
+
+      <label>
+        <input type="radio" name="projectStatus" value="closed" />
+        🔴 Closed
+      </label>
+    </div>
+
+    <button
+      class="project-action-open"
+      type="button"
+      onclick="window.submitProject()">
+      SEED PROJECT
+    </button>
+
+    <button
+      class="ghost"
+      type="button"
+      onclick="window.closeProjectCreate()">
+      CANCEL
+    </button>
+
+  </div>
+</div>
+
+
+<script type="module" src="scripts/projects.js"></script>
+
+</body>
+
+</html>
