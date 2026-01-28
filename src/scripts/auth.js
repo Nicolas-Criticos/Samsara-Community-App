@@ -138,7 +138,7 @@ window.login = async function () {
     await supabaseClient.auth.getSession();
 
   if (session) {
-    window.location.href = "/circle.html";
+    window.location.href = "circle.html";
   } else {
     authGate.style.display = "flex";
   }
