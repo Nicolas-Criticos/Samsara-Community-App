@@ -8,15 +8,18 @@ const authTitle = document.getElementById("authTitle");
 const loginStage = document.getElementById("loginStage");
 const signupStage = document.getElementById("signupStage");
 
+/* ===========================
+   UI HELPERS
+=========================== */
 function showSignup() {
-  authTitle.innerText = "Sign up";
+  authTitle.innerText = "Rite of Entry";
   loginStage.style.display = "none";
   signupStage.style.display = "block";
   authError.innerText = "";
 }
 
 function showLogin() {
-  authTitle.innerText = "Login";
+  authTitle.innerText = "Return";
   signupStage.style.display = "none";
   loginStage.style.display = "block";
   authError.innerText = "";
@@ -26,7 +29,7 @@ window.showSignup = showSignup;
 window.showLogin = showLogin;
 
 /* ===========================
-   SIGNUP
+   SIGNUP (INVITE ONLY)
 =========================== */
 window.signup = async function () {
   const email = document.getElementById("email").value.trim().toLowerCase();
@@ -46,33 +49,48 @@ window.signup = async function () {
     return;
   }
 
-  // Must already exist in members
-  const { data: member, error } = await supabaseClient
+  /* 🔍 STEP 1: VERIFY INVITE */
+  const { data: member, error: inviteError } = await supabaseClient
     .from("members")
     .select("id, user_id")
-    .ilike("email", email)
+    .eq("email", email)
     .maybeSingle();
 
+  if (inviteError) {
+    authError.innerText = "Invite verification failed.";
+    return;
+  }
+
   if (!member) {
-    authError.innerText = "This email is not invited.";
+    authError.innerText = "This email has not been invited.";
     return;
   }
 
   if (member.user_id) {
-    authError.innerText = "Account already exists. Please log in.";
+    authError.innerText = "This invite has already been claimed.";
     showLogin();
     return;
   }
 
-  const { data: authData, error: authErrorResp } =
-    await supabaseClient.auth.signUp({ email, password });
+  /* 🔐 STEP 2: CREATE AUTH USER */
+  const { data: authData, error: authErr } =
+    await supabaseClient.auth.signUp({
+      email,
+      password
+    });
 
-  if (authErrorResp) {
-    authError.innerText = authErrorResp.message;
+  if (authErr) {
+    authError.innerText = authErr.message;
     return;
   }
 
-  await supabaseClient
+  if (!authData?.user) {
+    authError.innerText = "Signup failed. Try again.";
+    return;
+  }
+
+  /* 🔗 STEP 3: CLAIM MEMBER RECORD */
+  const { error: claimError } = await supabaseClient
     .from("members")
     .update({
       user_id: authData.user.id,
@@ -80,15 +98,21 @@ window.signup = async function () {
     })
     .eq("id", member.id);
 
+  if (claimError) {
+    authError.innerText =
+      "Account created, but linking failed. Contact admin.";
+    return;
+  }
+
   showLogin();
-  authError.innerText = "Account created. Please log in.";
+  authError.innerText = "Rite complete. You may now enter.";
 };
 
 /* ===========================
    LOGIN
 =========================== */
 window.login = async function () {
-  const email = document.getElementById("email").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
   const password = document.getElementById("password").value;
 
   authError.innerText = "";
@@ -110,7 +134,8 @@ window.login = async function () {
    SESSION BOOTSTRAP
 =========================== */
 (async () => {
-  const { data: { session } } = await supabaseClient.auth.getSession();
+  const { data: { session } } =
+    await supabaseClient.auth.getSession();
 
   if (session) {
     window.location.href = "/circle.html";

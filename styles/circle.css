@@ -239,6 +239,116 @@ body {
   z-index: 50;
 }
 
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.profile-handle {
+  font-size: 0.75rem;
+  opacity: 0.65;
+  letter-spacing: 0.06em;
+}
+
+
+.profile-avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+    margin: 0 auto 1.4rem auto; /* ⬅ SPACE AFTER IMAGE BLOCK */
+}
+
+.profile-avatar-wrapper input {
+  display: none;
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+
+  background: rgba(200,200,200,0.25);
+
+  box-shadow:
+    0 0 18px rgba(0,0,0,0.12),
+    inset 0 0 12px rgba(255,255,255,0.5);
+}
+
+.profile-avatar-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.45);
+  border-radius: 50%;
+
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.profile-avatar-wrapper:hover .profile-avatar-hint {
+  opacity: 1;
+}
+
+.profile-expression {
+  width: 100%;
+  max-width: 340px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* ⬅ centers children */
+  gap: 0.8rem;
+}
+
+
+.profile-link-input,
+.profile-bio {
+  width: 100%;
+  border-radius: 14px;
+  border: none;
+  padding: 0.7rem 0.9rem;
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  font-family: inherit;
+  font-size: 0.85rem;
+
+  background: rgba(255,255,255,0.65);
+  color: rgba(43,43,43,0.75);
+}
+
+.profile-link-display {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+
+  color: rgba(90, 70, 50, 0.75);
+  border-bottom: 1px solid rgba(90, 70, 50, 0.35);
+
+  padding-bottom: 0.15rem;
+}
+
+.profile-link-display:hover {
+  opacity: 0.85;
+}
+
+
 .member-profile-inner {
   position: relative;
 
@@ -251,7 +361,10 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+ 
+  justify-content: center; /* 🔑 FIX */
+
+  gap: 1.2rem; /* 🔑 FIX */
 
   text-align: center;
 
@@ -329,6 +442,96 @@ body {
 .profile-close-btn:hover {
   background: rgba(255,255,255,0.7);
 }
+
+
+
+.profile-link-input {
+  width: 80%;
+  text-align: center;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(0,0,0,0.3);
+  padding: 0.4rem;
+  font-size: 0.85rem;
+}
+
+
+.bubble-pdf-link {
+  position: absolute;
+  right: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+
+  padding: 0.25rem 0.45rem;
+  border-radius: 999px;
+
+  background: rgba(255,255,255,0.75);
+  color: rgba(40,40,40,0.75);
+
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.18);
+
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.bubble-pdf-link:hover {
+  background: rgba(255,255,255,0.95);
+  transform: translateY(-50%) scale(1.08);
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.22);
+}
+
+/* ======================================
+   PROFILE PDF BUTTON (SUBTLE)
+====================================== */
+
+.profile-pdf-btn {
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  padding: 2px 7px;
+
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.25);
+  background: rgba(255,255,255,0.35);
+
+  color: rgba(0,0,0,0.55);
+  text-decoration: none;
+
+  opacity: 0.45;
+  cursor: pointer;
+
+  transition:
+    opacity 0.25s ease,
+    background 0.25s ease,
+    transform 0.25s ease;
+}
+
+/* Only reveal on intent */
+.rite-bubble:hover .profile-pdf-btn {
+  opacity: 0.85;
+}
+
+/* Gentle hover, no jump */
+.profile-pdf-btn:hover {
+  background: rgba(255,255,255,0.65);
+  opacity: 1;
+}
+
 
 /* ======================================================
    ANIMATIONS

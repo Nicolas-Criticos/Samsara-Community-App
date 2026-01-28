@@ -20,21 +20,22 @@
   <div class="particles" id="particles"></div>
 
   <div class="center-whisper">
-    <span>This is only the beginning</span>
+    <span>Meet the community</span>
   </div>
+  
 
   <main class="circle-container">
     <div class="circle-title">SACRED CIRCLE</div>
   </main>
-  <!-- ===============================
-     MEMBER PROFILE MODAL
-================================ -->
+ 
+
 <!-- ===============================
      MEMBER PROFILE MODAL
 ================================ -->
 <div class="member-profile" id="memberProfile" style="display:none;">
   <div class="member-profile-inner">
 
+    <!-- CLOSE -->
     <button
       class="profile-close-btn"
       onclick="closeMemberProfile()"
@@ -42,22 +43,114 @@
       ×
     </button>
 
-    <h2 id="profileUsername"></h2>
+  
 
-    <textarea
-      id="profileBio"
-      placeholder="Write a short description of who you are…"
-      rows="5">
-    </textarea>
+    <!-- ===============================
+     PROFILE HEADER
+============================== -->
+<header class="profile-header">
+  <h2 id="profileUsername" class="profile-username"></h2>
+  <div id="profileHandle" class="profile-handle"></div>
+</header>
 
-    <div class="profile-projects" id="profileProjects"></div>
+  
+<!-- ===============================
+     IDENTITY BLOCK
+============================== -->
+<section class="profile-identity">
 
-    <button
-      id="profileSaveBtn"
-      class="project-action-btn"
-      style="display:none;">
-      Save Profile
-    </button>
+  <!--!!The image is not centered in the circle!!-->
+
+  <!-- Avatar (clickable when self) -->
+  <div class="profile-avatar-wrapper">
+  <label class="profile-avatar-label">
+    <img
+      id="profileImage"
+      class="profile-avatar"
+      alt="Profile image"
+    />
+    <span class="avatar-overlay">Change</span>
+    <input
+      type="file"
+      id="profileImageInput"
+      accept="image/*"
+      hidden
+    />
+  </label>
+</div>
+
+<!--!!Here there needs to be a space!!-->
+
+  <!-- Archetype -->
+  <div id="profileArchetype" class="profile-archetype"></div>
+
+</section>
+
+
+    <!-- ===============================
+         EXPRESSION BLOCK
+    ============================== -->
+    <section class="profile-expression">
+
+      <!-- Social / Website -->
+      <input
+        type="url"
+        id="profileLink"
+        class="profile-link-input"
+        placeholder="Website or Instagram link" />
+
+      <!-- Bio -->
+      <textarea
+        id="profileBio"
+        class="profile-bio"
+        placeholder="Write what path you took to get here.."
+        rows="5">
+      </textarea>
+
+      <!-- PDF UPLOAD (SELF ONLY) -->
+<input
+  type="file"
+  id="profilePdfInput"
+  accept="application/pdf"
+  style="display:none;" />
+
+<button
+  id="profilePdfBtn"
+  class="profile-pdf-btn"
+  style="display:none;">
+  PDF
+</button>
+
+
+      <a
+  id="profileLinkDisplay"
+  class="profile-link-display"
+  href="#"
+  target="_blank"
+  rel="noopener"
+  style="display:none;">
+</a>
+
+    </section>
+
+    <!-- ===============================
+         ACTIVITY BLOCK
+    ============================== -->
+    <section class="profile-activity">
+      <div class="profile-projects" id="profileProjects"></div>
+    </section>
+
+    <!-- ===============================
+         ACTIONS
+    ============================== -->
+    <footer class="profile-actions">
+      <button
+        id="profileSaveBtn"
+        class="project-action-btn"
+        style="display:none;">
+        Save Profile
+      </button>
+    </footer>
 
   </div>
 </div>

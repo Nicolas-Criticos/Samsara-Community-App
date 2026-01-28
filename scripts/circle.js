@@ -13,6 +13,16 @@ const profileUsername = document.getElementById("profileUsername");
 const profileBio = document.getElementById("profileBio");
 const profileProjects = document.getElementById("profileProjects");
 const profileSaveBtn = document.getElementById("profileSaveBtn");
+const profileArchetype = document.getElementById("profileArchetype");
+const profileImage = document.getElementById("profileImage");
+const profileImageInput = document.getElementById("profileImageInput");
+const profileLink = document.getElementById("profileLink");
+const profileHandle = document.getElementById("profileHandle");
+const profilePdfInput = document.getElementById("profilePdfInput");
+const profilePdfBtn = document.getElementById("profilePdfBtn");
+
+
+
 
 let currentUserId = null;
 let activeProfileUserId = null;
@@ -76,7 +86,7 @@ async function loadRiteMembers() {
 
   const { data, error } = await supabaseClient
     .from("members")
-    .select("user_id, username, archetype, bio")
+    .select("user_id, username, name, archetype, bio, profile_image_url, website, profile_pdf_url")
     .not("username", "is", null)
     .not("archetype", "is", null)
     .order("created_at", { ascending: true });
@@ -100,10 +110,21 @@ function spawnBubble(member) {
 
   bubble.innerHTML = `
     <div class="bubble-inner">
-      <span class="bubble-name">${member.username}</span>
+      <span class="bubble-name">${member.name}</span>
       <span class="bubble-archetype">${member.archetype}</span>
     </div>
   `;
+
+  if (member.profile_pdf_url) {
+  const pdfLink = document.createElement("a");
+  pdfLink.className = "bubble-pdf-link";
+  pdfLink.href = member.profile_pdf_url;
+  pdfLink.target = "_blank";
+  pdfLink.rel = "noopener";
+  pdfLink.textContent = "PDF";
+
+  bubble.appendChild(pdfLink);
+}
 
   bubble.addEventListener("click", () => openMemberProfile(member));
 
@@ -144,15 +165,71 @@ function spawnBubble(member) {
 =========================== */
 async function openMemberProfile(member) {
   activeProfileUserId = member.user_id;
+profileArchetype.textContent = member.archetype
+  ? member.archetype.toUpperCase()
+  : "";
 
   profileModal.style.display = "flex";
-  profileUsername.textContent = member.username;
+  profileUsername.textContent = member.name;
   profileBio.value = member.bio || "";
 
   const isSelf = member.user_id === currentUserId;
 
   profileBio.disabled = !isSelf;
   profileSaveBtn.style.display = isSelf ? "inline-flex" : "none";
+  profilePdfBtn.style.display = isSelf ? "inline-flex" : "none";
+
+  // Profile image
+if (
+  member.profile_image_url &&
+  member.profile_image_url.startsWith("http")
+) {
+  profileImage.src = member.profile_image_url;
+} else {
+  profileImage.src = "";
+}
+
+
+const linkInput = document.getElementById("profileLink");
+const linkDisplay = document.getElementById("profileLinkDisplay");
+
+profileUsername.textContent = member.name || "";
+
+const handleEl = profileHandle
+
+if (!handleEl) {
+  console.warn("profileHandle element missing from DOM");
+} else {
+  handleEl.textContent = member.username
+    ? `(${member.username})`
+    : "";
+}
+
+
+
+
+// Populate value
+linkInput.value = member.website || "";
+
+if (isSelf) {
+  linkInput.style.display = "block";
+  linkDisplay.style.display = "none";
+} else {
+  linkInput.style.display = "none";
+
+  if (member.website) {
+    linkDisplay.href = member.website.startsWith("http")
+      ? member.website
+      : `https://${member.website}`;
+
+    linkDisplay.textContent =  "Find out more";
+
+    linkDisplay.style.display = "inline-block";
+  } else {
+    linkDisplay.style.display = "none";
+  }
+}
+
 
   await loadMemberProjects(member.user_id);
 }
@@ -189,7 +266,7 @@ async function loadMemberProjects(userId) {
         title
       )
     `)
-    .eq("user_id", userId);
+    .eq("member_id", userId);
 
   if (contribError) {
     console.error("❌ Contributed projects error:", contribError);
@@ -243,9 +320,61 @@ async function loadMemberProjects(userId) {
 profileSaveBtn.onclick = async () => {
   const bio = profileBio.value.trim();
 
+  const profileLinkInput = document.getElementById("profileLink");
+  const profileImageInput = document.getElementById("profileImageInput");
+
+  let website = profileLinkInput?.value.trim() || "";
+  let profile_image_url = null;
+
+  /* --------------------------
+     NORMALIZE WEBSITE LINK
+  -------------------------- */
+  if (website) {
+    if (!website.startsWith("http://") && !website.startsWith("https://")) {
+      website = "https://" + website;
+    }
+  }
+
+  /* --------------------------
+     IMAGE UPLOAD (OPTIONAL)
+  -------------------------- */
+  if (profileImageInput && profileImageInput.files.length > 0) {
+    const file = profileImageInput.files[0];
+    const ext = file.name.split(".").pop().toLowerCase();
+    const path = `profiles/${currentUserId}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabaseClient
+      .storage
+      .from("profile-image") // ✅ MUST MATCH BUCKET NAME
+      .upload(path, file, {
+        upsert: true,
+        cacheControl: "3600"
+      });
+
+    if (uploadError) {
+      console.error("❌ Image upload failed:", uploadError);
+      alert("Image upload failed.");
+      return;
+    }
+
+    profile_image_url = supabaseClient
+      .storage
+      .from("profile-image")
+      .getPublicUrl(path).data.publicUrl;
+  }
+
+  /* --------------------------
+     UPDATE MEMBER RECORD
+  -------------------------- */
+  const updatePayload = {
+    bio,
+    website,
+    ...(profile_image_url && { profile_image_url })
+  };
+
   const { error } = await supabaseClient
     .from("members")
-    .update({ bio })
+    .update(updatePayload)
     .eq("user_id", currentUserId);
 
   if (error) {
@@ -254,9 +383,57 @@ profileSaveBtn.onclick = async () => {
     return;
   }
 
+  // Close modal cleanly
   profileModal.style.display = "none";
   activeProfileUserId = null;
 };
+
+
+profilePdfBtn.onclick = () => profilePdfInput.click();
+
+profilePdfInput.addEventListener("change", async () => {
+  const file = profilePdfInput.files[0];
+  if (!file) return;
+
+  if (file.type !== "application/pdf") {
+    alert("Only PDF files allowed.");
+    return;
+  }
+
+  const path = `${currentUserId}/profile.pdf`;
+
+  const { error: uploadError } = await supabaseClient
+    .storage
+    .from("profile-pdf")
+    .upload(path, file, {
+      upsert: true,
+      contentType: "application/pdf"
+    });
+
+  if (uploadError) {
+    console.error(uploadError);
+    alert("PDF upload failed.");
+    return;
+  }
+
+  const pdfUrl = supabaseClient
+    .storage
+    .from("profile-pdf")
+    .getPublicUrl(path).data.publicUrl;
+
+  const { error } = await supabaseClient
+    .from("members")
+    .update({ profile_pdf_url: pdfUrl })
+    .eq("user_id", currentUserId);
+
+  if (error) {
+    alert("Failed to save PDF link.");
+    return;
+  }
+
+  alert("PDF uploaded successfully.");
+});
+
 
 /* ===========================
    CLOSE PROFILE
@@ -265,3 +442,51 @@ window.closeMemberProfile = () => {
   profileModal.style.display = "none";
   activeProfileUserId = null;
 };
+
+profileImage.addEventListener("click", () => {
+  if (activeProfileUserId === currentUserId) {
+    profileImageInput.click();
+  }
+});
+
+profileImageInput.addEventListener("change", async () => {
+  const file = profileImageInput.files[0];
+  if (!file) return;
+
+  const ext = file.name.split(".").pop();
+  const path = `${currentUserId}.${ext}`;
+
+  const { error: uploadError } = await supabaseClient
+    .storage
+    .from("profile-image")
+    .upload(path, file, {
+      upsert: true,
+      contentType: file.type,
+    });
+
+  if (uploadError) {
+    console.error("Upload failed:", uploadError);
+    alert("Image upload failed");
+    return;
+  }
+
+  const { data } = supabaseClient
+    .storage
+    .from("profile-image")
+    .getPublicUrl(path);
+
+  const imageUrl = data.publicUrl;
+
+  const { error: updateError } = await supabaseClient
+    .from("members")
+    .update({ profile_image_url: imageUrl })
+    .eq("user_id", currentUserId);
+
+  if (updateError) {
+    console.error("DB update failed:", updateError);
+    alert("Profile update failed");
+    return;
+  }
+
+  profileImage.src = imageUrl;
+});
