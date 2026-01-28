@@ -391,6 +391,27 @@ body[data-realm="samsara"] .portal-bg::before {
     opacity 0.25s ease;
 }
 
+.project-flag {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+.project-flag input {
+  margin-right: 0.4rem;
+}
+
+.project-cny {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  font-size: 1.1rem;
+  filter: drop-shadow(0 0 6px rgba(200, 0, 0, 0.6));
+}
 
 .project-close-btn:hover {
   background: rgba(255,255,255,0.65);

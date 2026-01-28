@@ -7,10 +7,7 @@ import { supabaseClient } from "./supabase.js";
    GLOBAL STATE
 ====================================================== */
 let currentUserId = null;
-
-/* ======================================================
-   REALM (SINGLE SOURCE OF TRUTH)
-====================================================== */
+const realm = document.body.dataset.realm || "samsara";
 
 /* ======================================================
    DOM REFERENCES
@@ -34,11 +31,6 @@ const primaryActionBtn = document.getElementById("detailProjectAction");
 const createModal = document.getElementById("projectCreate");
 
 /* ======================================================
-   REALM TOGGLE (OPTIONAL)
-====================================================== */
-
-
-/* ======================================================
    SESSION BOOTSTRAP
 ====================================================== */
 (async () => {
@@ -53,15 +45,11 @@ const createModal = document.getElementById("projectCreate");
 })();
 
 /* ======================================================
-   LOAD PROJECTS
+   REALM TOGGLE
 ====================================================== */
-
-const realm = document.body.dataset.realm || "samsara";
-
 const toggle = document.getElementById("realmToggle");
 if (toggle) {
   toggle.checked = realm === "vrischgewagt";
-
   toggle.addEventListener("change", () => {
     window.location.href = toggle.checked
       ? "vrischgewagt.html"
@@ -69,7 +57,9 @@ if (toggle) {
   });
 }
 
-
+/* ======================================================
+   LOAD PROJECTS
+====================================================== */
 async function loadProjects() {
   const { data, error } = await supabaseClient
     .from("projects")
@@ -80,7 +70,8 @@ async function loadProjects() {
       image_url,
       status,
       roles_needed,
-      created_by
+      created_by,
+      chinese_new_year
     `)
     .eq("realm", realm)
     .eq("archived", false)
@@ -108,6 +99,15 @@ async function spawnProjectNode(project) {
   const statusLight = document.createElement("div");
   statusLight.className = `project-status status-${project.status}`;
   node.appendChild(statusLight);
+
+  // 🧧 Chinese New Year indicator
+  if (project.chinese_new_year) {
+    const cny = document.createElement("div");
+    cny.className = "project-cny-indicator";
+    cny.title = "Chinese New Year Project";
+    cny.textContent = "🧧";
+    node.appendChild(cny);
+  }
 
   node.onclick = () => openProjectDetail(project);
 
@@ -165,10 +165,9 @@ async function openProjectDetail(project) {
     detailImage.style.display = "none";
   }
 
-  // Creator
   const { data: creator } = await supabaseClient
     .from("members")
-    .select("name")
+    .select("username")
     .eq("user_id", project.created_by)
     .single();
 
@@ -193,17 +192,32 @@ async function openProjectDetail(project) {
    CONTRIBUTORS
 ====================================================== */
 async function renderContributors(projectId) {
-  const { data } = await supabaseClient
+  // 1. Get contributor user IDs
+  const { data: contributors, error } = await supabaseClient
     .from("project_contributors")
-    .select("members(name)")
+    .select("member_id")
     .eq("project_id", projectId)
     .eq("realm", realm);
 
+  if (error || !contributors?.length) {
+    detailContributors.textContent = "Contributors: None";
+    return;
+  }
+
+  // 2. Fetch usernames
+  const userIds = contributors.map(c => c.member_id);
+
+  const { data: members } = await supabaseClient
+    .from("members")
+    .select("user_id, username")
+    .in("user_id", userIds);
+
   detailContributors.textContent =
-    data && data.length
-      ? "Contributors: " + data.map(c => c.members.name).join(", ")
+    members?.length
+      ? "Contributors: " + members.map(m => m.username).join(", ")
       : "Contributors: None";
 }
+
 
 /* ======================================================
    PRIMARY ACTION BUTTON
@@ -252,7 +266,7 @@ async function joinProject(project) {
     return;
   }
 
-  const { error } = await supabaseClient
+  await supabaseClient
     .from("project_contributors")
     .insert({
       project_id: project.id,
@@ -260,13 +274,7 @@ async function joinProject(project) {
       realm
     });
 
-  if (error) {
-    alert("Failed to join project.");
-    return;
-  }
-
   await renderContributors(project.id);
-  alert("You have joined the project.");
 }
 
 /* ======================================================
@@ -285,35 +293,46 @@ async function applyToProject(projectId) {
       status: "pending",
       realm
     });
-
-  alert("Application sent.");
 }
 
 /* ======================================================
-   APPLICATIONS (CREATOR)
+   APPLICATIONS
 ====================================================== */
 async function loadApplications(projectId) {
-  const { data } = await supabaseClient
+  const { data: apps, error } = await supabaseClient
     .from("project_applications")
-    .select("id, message, applicant_id, members(name)")
+    .select("id, message, applicant_id")
     .eq("project_id", projectId)
     .eq("realm", realm)
     .eq("status", "pending");
 
-  if (!data?.length) return;
+  if (error || !apps?.length) return;
+
+  // Fetch usernames
+  const userIds = apps.map(a => a.applicant_id);
+
+  const { data: members } = await supabaseClient
+    .from("members")
+    .select("user_id, username")
+    .in("user_id", userIds);
+
+  const nameMap = Object.fromEntries(
+    members.map(m => [m.user_id, m.username])
+  );
 
   const bubble = document.createElement("div");
   bubble.className = "application-bubble";
-  bubble.textContent = `🟠 ${data.length} application(s) pending`;
-  bubble.onclick = () => handleApplications(data, projectId);
+  bubble.textContent = `🟠 ${apps.length} application(s) pending`;
 
+  bubble.onclick = () => handleApplications(apps, nameMap, projectId);
   detailInner.appendChild(bubble);
 }
 
-async function handleApplications(apps, projectId) {
+
+async function handleApplications(apps, nameMap, projectId) {
   for (const app of apps) {
     const approve = confirm(
-      `${app.members.name}\n\n${app.message}\n\nApprove?`
+      `${nameMap[app.applicant_id] || "Unknown"}\n\n${app.message}\n\nApprove?`
     );
 
     if (approve) {
@@ -341,8 +360,9 @@ async function handleApplications(apps, projectId) {
   alert("Applications processed.");
 }
 
+
 /* ======================================================
-   STATUS CONTROL (CREATOR)
+   STATUS CONTROL
 ====================================================== */
 function renderStatusControl(project) {
   if (project.created_by !== currentUserId) return;
@@ -371,7 +391,6 @@ function renderStatusControl(project) {
       .eq("realm", realm);
 
     project.status = select.value;
-    configurePrimaryAction(project);
     await loadProjects();
   };
 
@@ -379,7 +398,7 @@ function renderStatusControl(project) {
 }
 
 /* ======================================================
-   END PROJECT (CREATOR)
+   END PROJECT
 ====================================================== */
 function renderEndProjectButton(project) {
   const btn = document.createElement("button");
@@ -424,33 +443,12 @@ async function submitProject() {
   const status =
     document.querySelector('input[name="projectStatus"]:checked')?.value || "open";
 
+  const chineseNewYear =
+    document.getElementById("createProjectCNY")?.checked || false;
+
   if (!title || !description) {
     alert("Project requires a name and description.");
     return;
-  }
-
-  let imageUrl = null;
-  const fileInput = document.getElementById("projectImageUpload");
-
-  if (fileInput.files.length) {
-    const file = fileInput.files[0];
-    const ext = file.name.split(".").pop();
-    const path = `projects/${crypto.randomUUID()}.${ext}`;
-
-    const { error } = await supabaseClient
-      .storage
-      .from("project-images")
-      .upload(path, file);
-
-    if (error) {
-      alert("Image upload failed.");
-      return;
-    }
-
-    imageUrl = supabaseClient
-      .storage
-      .from("project-images")
-      .getPublicUrl(path).data.publicUrl;
   }
 
   const { data, error } = await supabaseClient
@@ -459,11 +457,11 @@ async function submitProject() {
       title,
       description,
       timeline,
-      image_url: imageUrl,
       status,
       created_by: currentUserId,
       realm,
-      archived: false
+      archived: false,
+      chinese_new_year: chineseNewYear
     }])
     .select()
     .single();
