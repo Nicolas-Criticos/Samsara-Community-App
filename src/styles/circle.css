@@ -532,6 +532,120 @@ body {
   opacity: 1;
 }
 
+/* ======================================================
+   MOBILE PORTRAIT ADAPTATION
+====================================================== */
+
+@media (max-width: 768px) and (orientation: portrait) {
+
+  /* --------------------
+     BODY SAFETY
+  -------------------- */
+  body {
+    overflow-y: auto;
+  }
+
+  /* --------------------
+     TITLE
+  -------------------- */
+  .circle-title {
+    font-size: 1.4rem;
+    margin-bottom: 1.8rem;
+  }
+
+  /* --------------------
+     CENTER CONTAINER
+  -------------------- */
+  .circle-container {
+    padding: 3rem 1.2rem;
+  }
+
+  /* --------------------
+     RITE FIELD
+  -------------------- */
+  .rite-field {
+    pointer-events: auto;
+  }
+
+  /* --------------------
+     PROFILE MODAL
+  -------------------- */
+  .member-profile-inner {
+    width: 92vw;
+    height: auto;              /* 🔑 allow vertical flow */
+    min-height: 70vh;
+
+    border-radius: 28px;       /* 🔑 no forced circle */
+    padding: 2rem 1.5rem;
+
+    gap: 1.4rem;
+  }
+
+  /* --------------------
+     PROFILE HEADER
+  -------------------- */
+  .profile-header {
+    margin-bottom: 0.6rem;
+  }
+
+  .profile-username {
+    font-size: 1.2rem;
+  }
+
+  /* --------------------
+     AVATAR
+  -------------------- */
+  .profile-avatar-wrapper {
+    width: 96px;
+    height: 96px;
+  }
+
+  .avatar-overlay {
+    font-size: 0.65rem;
+  }
+
+  /* --------------------
+     PROFILE TEXT
+  -------------------- */
+  .profile-archetype {
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
+  }
+
+  .profile-link-input,
+  .profile-bio {
+    width: 100%;
+    font-size: 0.85rem;
+  }
+
+  /* --------------------
+     BUTTONS
+  -------------------- */
+  .project-action-btn,
+  #profileSaveBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* --------------------
+     PROJECT LIST
+  -------------------- */
+  .profile-projects {
+    width: 100%;
+    max-height: 26vh;
+    overflow-y: auto;
+  }
+
+  /* --------------------
+     RITE BUBBLES
+  -------------------- */
+  .rite-bubble {
+    width: 86px;
+    height: 86px;
+    font-size: 0.7rem;
+  }
+}
+
 
 /* ======================================================
    ANIMATIONS
