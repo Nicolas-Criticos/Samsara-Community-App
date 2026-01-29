@@ -569,6 +569,32 @@ body[data-realm="samsara"] .portal-bg::before {
   margin: 0.4rem 0 0.2rem;
 }
 
+@media (max-width: 768px) {
+
+  /* Prevent content from hiding behind bottom controls */
+  .portal-bg,
+  .projects-container {
+    padding-bottom: calc(5.5rem + var(--safe-bottom));
+  }
+
+  /* Stack bottom buttons instead of overlapping */
+  .project-action-btn,
+  .circle-toggle a {
+    display: inline-flex;
+    justify-content: center;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  /* Center bottom UI cluster */
+  .circle-toggle,
+  .project-bottom-controls {
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+}
+
 /* ======================================================
    ANIMATIONS
 ====================================================== */
