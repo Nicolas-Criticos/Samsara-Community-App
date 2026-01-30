@@ -5,6 +5,622 @@
   --glow-earth: rgba(150, 115, 70, 0.45);
   --glow-leaf:  rgba(110, 140, 90, 0.45);
   --glow-ember: rgba(180, 110, 60, 0.45);
+
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+
+
+/* ======================================================
+   PROJECT FIELD LAYOUT
+====================================================== */
+.project-field {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+}
+
+/* ======================================================
+   FIX: REMOVE EMPTY SCROLL SPACE
+====================================================== */
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.portal-bg {
+  height: 100vh;
+  overflow: hidden;
+}
+
+
+/* ======================================================
+   FIELD HEADER
+====================================================== */
+.field-header {
+  position: fixed;
+  top: 24px;
+  left: 28px;
+  z-index: 5;
+
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(43,43,43,0.6);
+}
+
+.field-header a {
+  margin-left: 1.5rem;
+  text-decoration: none;
+  color: rgba(43,43,43,0.55);
+}
+
+.field-header a:hover {
+  color: rgba(43,43,43,0.8);
+}
+
+.field-header-project {
+  left: 24px;
+  z-index: 6;
+}
+
+.field-header-project a {
+  opacity: 0.7;
+}
+
+.field-header-project a:hover {
+  opacity: 1;
+}
+
+body[data-realm="samsara"] .portal-bg {
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(225, 214, 193, 0.92) 0%,
+      rgba(223, 214, 199, 0.94) 38%,
+      rgba(241, 235, 222, 0.97) 68%,
+      rgba(255,252,245,0.99) 100%
+    );
+}
+
+
+body[data-realm="samsara"] .portal-bg::before {
+  content: "";
+  position: absolute;
+  inset: -15%;
+  pointer-events: none;
+  z-index: 2;
+
+  background: radial-gradient(
+    circle at center,
+    rgba(220,210,195,0.35) 0%,
+    rgba(240,232,220,0.28) 34%,
+    rgba(255,255,255,0.18) 55%,
+    rgba(255,255,255,0.0) 75%
+  );
+
+  animation: samsaraBreath 18s ease-in-out infinite;
+}
+
+
+/* ======================================================
+   REALM SWITCH (TOP TOGGLE)
+====================================================== */
+.realm-switch {
+  position: fixed;
+  top: 24px;
+  right: 28px;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(43,43,43,0.6);
+}
+
+.realm-label {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.realm-label.active {
+  opacity: 1;
+}
+
+/* Switch */
+.switch {
+  position: relative;
+  width: 46px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+
+  background: rgba(180,170,150,0.45);
+  border-radius: 999px;
+  transition: background 0.35s ease;
+}
+
+.slider::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255,255,255,0.95),
+    rgba(230,225,215,0.85)
+  );
+
+  transition: transform 0.35s ease;
+}
+
+.switch input:checked + .slider {
+  background: rgba(140,155,120,0.55);
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(22px);
+}
+
+/* ======================================================
+   PROJECT NODE
+====================================================== */
+.project-node {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  color: rgba(43,43,43,0.75);
+
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255,255,255,0.9),
+    rgba(230,225,215,0.6) 65%,
+    rgba(210,205,195,0.45) 100%
+  );
+
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.08),
+    inset 0 0 18px rgba(255,255,255,0.6);
+
+  cursor: pointer;
+  opacity: 0;
+
+  animation:
+    nodeFadeIn 3s ease forwards,
+    nodeBreath 7s ease-in-out infinite;
+
+  transition:
+    transform 0.45s ease,
+    box-shadow 0.45s ease,
+    filter 0.45s ease;
+}
+
+.project-node:hover {
+  transform: scale(1.12);
+  z-index: 4;
+
+  box-shadow:
+    0 18px 45px rgba(0,0,0,0.14),
+    inset 0 0 22px rgba(255,255,255,0.75);
+
+  filter: brightness(1.04);
+}
+
+.project-node::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(160,140,90,0.25), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.project-node:hover::after {
+  opacity: 0.6;
+}
+
+/* Application indicator */
+.project-node.has-applications::after {
+  content: attr(data-app-count);
+  position: absolute;
+  top: 10px;
+  right: 12px;
+
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+
+  background: radial-gradient(circle at 30% 30%, #d9a441, #a35c1e);
+  box-shadow:
+    0 0 12px rgba(255,165,60,0.65),
+    0 0 24px rgba(255,165,60,0.35);
+
+  animation: applicationOrbPulse 3.5s ease-in-out infinite;
+}
+
+/* ======================================================
+   STATUS LIGHT
+====================================================== */
+.project-status {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-open        { background: #4caf50; }
+.status-application { background: #ff9800; }
+.status-closed      { background: #f44336; }
+
+/* ======================================================
+   ADD PROJECT BUTTON
+====================================================== */
+.project-add {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+}
+
+.project-add button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 1.9rem;
+  font-weight: 300;
+  line-height: 1;
+
+  color: rgba(60,55,45,0.8);
+
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255,255,255,0.9),
+    rgba(230,225,215,0.65)
+  );
+
+  cursor: pointer;
+  position: relative;
+}
+
+.project-add button:hover {
+  transform: scale(1.08);
+}
+
+/* ======================================================
+   PROJECT DETAIL MODAL
+====================================================== */
+.project-detail {
+  position: fixed;
+  inset: 0;
+  background: rgba(246,243,238,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.project-detail-inner {
+  position: relative;
+
+  width: min(90vw, 600px);
+  height: min(90vw, 600px);
+  border-radius: 50%;
+  padding: 3rem;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+
+  text-align: center;
+
+  background: radial-gradient(
+    circle at center,
+    rgba(255,255,255,0.98),
+    rgba(235,230,220,0.9)
+  );
+}
+
+.project-detail-inner img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+/* Close button */
+.project-close-btn {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+  border: none;
+
+  font-size: 1.25rem;
+  font-weight: 300;
+  line-height: 1;
+
+  background: rgba(255,255,255,0.35);
+  color: rgba(60,50,40,0.65);
+
+  cursor: pointer;
+  z-index: 5;
+
+  transition:
+    background 0.25s ease,
+    transform 0.25s ease,
+    opacity 0.25s ease;
+}
+
+.project-flag {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+.project-flag input {
+  margin-right: 0.4rem;
+}
+
+.project-cny {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  font-size: 1.1rem;
+  filter: drop-shadow(0 0 6px rgba(200, 0, 0, 0.6));
+}
+
+.project-close-btn:hover {
+  background: rgba(255,255,255,0.65);
+  transform: translateX(-50%) scale(1.12);
+}
+
+/* ======================================================
+   META + ACTIONS
+====================================================== */
+.project-meta {
+  font-size: 0.8rem;
+  color: rgba(43,43,43,0.65);
+}
+
+.project-action-ring {
+  margin-top: 1.4rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.project-action-btn {
+  padding: 0.55rem 1.4rem;
+
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+
+  background: radial-gradient(circle, #8a7f6d, #6f6456);
+  color: #fff;
+
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.project-action-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 0 14px rgba(140,120,80,0.45);
+}
+
+.project-action-btn.subtle {
+  background: transparent;
+  color: rgba(120,90,60,0.85);
+  border: 1px solid rgba(120,90,60,0.35);
+}
+
+/* ======================================================
+   CREATE MODAL
+====================================================== */
+.project-create {
+  position: fixed;
+  inset: 0;
+  background: rgba(246,243,238,0.92);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 12;
+}
+
+.project-create-inner {
+  width: min(85vw, 520px);
+  height: min(85vw, 520px);
+  border-radius: 50%;
+  padding: 3rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+
+  text-align: center;
+
+  background: radial-gradient(
+    circle at center,
+    rgba(255,255,255,0.98),
+    rgba(235,230,220,0.9)
+  );
+}
+
+.project-create-inner input,
+.project-create-inner textarea {
+  border: none;
+  padding: 0.6rem;
+  border-radius: 10px;
+  font-family: inherit;
+  resize: none;
+}
+
+.project-detail-inner {
+  display: grid;
+  grid-template-rows:
+    auto        /* header */
+    1fr         /* description */
+    auto        /* status */
+    auto        /* meta */
+    auto;       /* action */
+
+  align-items: center;
+  text-align: center;
+}
+
+.project-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.project-detail-image {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+.project-core {
+  max-width: 85%;
+  margin: 0 auto;
+}
+
+.project-description {
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.project-status-toggle select {
+  appearance: none;
+  padding: 0.45rem 1.2rem;
+
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+
+  border-radius: 999px;
+  border: none;
+
+  background:
+    radial-gradient(
+      circle at 30% 30%,
+      rgba(255,255,255,0.95),
+      rgba(230,225,215,0.85)
+    );
+
+  color: rgba(60,50,40,0.75);
+  cursor: pointer;
+}
+
+.project-status-toggle select:hover {
+  filter: brightness(1.05);
+}
+.project-status-toggle {
+  margin: 0.4rem 0 0.2rem;
+}
+
+@media (max-width: 768px) {
+
+  /* Prevent content from hiding behind bottom controls */
+  .portal-bg,
+  .projects-container {
+    padding-bottom: calc(5.5rem + var(--safe-bottom));
+  }
+
+  /* Stack bottom buttons instead of overlapping */
+  .project-action-btn,
+  .circle-toggle a {
+    display: inline-flex;
+    justify-content: center;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  /* Center bottom UI cluster */
+  .circle-toggle,
+  .project-bottom-controls {
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+}
+
+/* ======================================================
+   ROOT VARIABLES
+====================================================== */
+:root {
+  --glow-earth: rgba(150, 115, 70, 0.45);
+  --glow-leaf:  rgba(110, 140, 90, 0.45);
+  --glow-ember: rgba(180, 110, 60, 0.45);
 }
 
 /* ======================================================
@@ -592,6 +1208,38 @@ body[data-realm="samsara"] .portal-bg::before {
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
+  }
+}
+
+
+/* ======================================================
+   FIX: KEEP JOIN BUTTON VISIBLE ON MOBILE
+====================================================== */
+
+.project-detail-inner {
+  overflow: hidden;
+}
+
+.project-action-ring {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .project-detail-inner {
+    height: min(92vh, 520px);
+    padding-bottom: 2.2rem;
+  }
+
+  .project-action-ring {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(
+      to top,
+      rgba(255,255,255,0.95),
+      rgba(255,255,255,0.6),
+      transparent
+    );
+    padding-top: 0.8rem;
   }
 }
 

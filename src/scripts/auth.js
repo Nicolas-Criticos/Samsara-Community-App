@@ -127,7 +127,7 @@ window.login = async function () {
     return;
   }
 
-  window.location.href = "/circle.html";
+  window.location.href = "circle.html";
 };
 
 /* ===========================

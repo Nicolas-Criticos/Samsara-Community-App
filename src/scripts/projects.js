@@ -172,7 +172,7 @@ async function openProjectDetail(project) {
     .single();
 
   detailCreator.textContent =
-    `Created by ${creator?.name || "Unknown"}`;
+    `Created by ${creator?.username  || "Unknown"}`;
 
   await renderContributors(project.id);
 
@@ -440,6 +440,16 @@ async function submitProject() {
   const title = document.getElementById("createProjectTitle").value.trim();
   const description = document.getElementById("createProjectDescription").value.trim();
   const timeline = document.getElementById("createProjectTimeline").value.trim();
+  const imageInput = document.getElementById("projectImageUpload");
+
+  const { data: { session }, error: sessionError } =
+  await supabaseClient.auth.getSession();
+
+if (!session || sessionError) {
+  alert("Session expired. Please refresh and log in again.");
+  return;
+}
+
   const status =
     document.querySelector('input[name="projectStatus"]:checked')?.value || "open";
 
@@ -451,6 +461,39 @@ async function submitProject() {
     return;
   }
 
+  let image_url = null;
+
+  /* =====================================
+     1. UPLOAD IMAGE (OPTIONAL)
+  ===================================== */
+  if (imageInput.files.length > 0) {
+    const file = imageInput.files[0];
+    const ext = file.name.split(".").pop().toLowerCase();
+    const path = `projects/${crypto.randomUUID()}.${ext}`;
+
+    const { error: uploadError } = await supabaseClient
+      .storage
+      .from("project-images") // ✅ bucket name
+      .upload(path, file, {
+        upsert: false,
+        contentType: file.type
+      });
+
+    if (uploadError) {
+      console.error("❌ Image upload failed:", uploadError);
+      alert("Image upload failed.");
+      return;
+    }
+
+    image_url = supabaseClient
+      .storage
+      .from("project-images")
+      .getPublicUrl(path).data.publicUrl;
+  }
+
+  /* =====================================
+     2. INSERT PROJECT (WITH IMAGE)
+  ===================================== */
   const { data, error } = await supabaseClient
     .from("projects")
     .insert([{
@@ -461,19 +504,25 @@ async function submitProject() {
       created_by: currentUserId,
       realm,
       archived: false,
-      chinese_new_year: chineseNewYear
+      chinese_new_year: chineseNewYear,
+      image_url
     }])
     .select()
     .single();
 
   if (error) {
+    console.error("❌ Project insert failed:", error);
     alert("Failed to create project.");
     return;
   }
 
+  /* =====================================
+     3. CLEAN UP + RENDER
+  ===================================== */
   closeProjectCreate();
   spawnProjectNode(data);
 }
+
 
 /* ======================================================
    GLOBAL EXPORTS
