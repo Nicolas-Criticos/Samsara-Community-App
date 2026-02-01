@@ -611,6 +611,36 @@ body[data-realm="samsara"] .portal-bg::before {
 }
 
 
+/* ======================================================
+   MOBILE NAV REPOSITIONING
+====================================================== */
+
+@media (max-width: 768px) {
+
+  /* --- TOP CENTER: REALM TOGGLE --- */
+  .realm-switch {
+    top: 16px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    justify-content: center;
+  }
+
+  /* --- BOTTOM CENTER: RETURN TO CIRCLE --- */
+  .field-header-project {
+    top: auto;
+    bottom: calc(16px + var(--safe-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+
+  .field-header-project a {
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    color: rgba(43, 43, 43, 0.55);
+  }
+}
 
 
 
