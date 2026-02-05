@@ -560,8 +560,13 @@ function renderInspirationButton(link) {
     const size = 44;
 
     // place it inside the circular boundary
-    btn.style.left = `${rect.width - size - 24}px`;
-    btn.style.top = `24px`;
+    const centerX = rect.width / 2;
+const centerY = rect.height / 2;
+
+// place button in top-right quadrant, safely inside the circle
+btn.style.left = `${centerX + 0.35 * centerX - size / 2}px`;
+btn.style.top  = `${centerY - 0.35 * centerY - size / 2}px`;
+
   });
 }
 

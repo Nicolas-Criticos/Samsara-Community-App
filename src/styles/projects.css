@@ -592,41 +592,43 @@ body[data-realm="samsara"] .portal-bg::before {
 =============================== */
 
 .project-detail-inner {
-  position: relative; /* 🔑 anchor */
+  border-radius: 50%;
   overflow: hidden;
+  display: grid;
 }
+
 
 /* ===============================
    PROJECT INSPIRATION BUTTON (FIXED)
 =============================== */
 
 .project-link-btn {
-  position: fixed;
-  width: 36px;
-  height: 36px;
+  position: absolute;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
 
-  background: rgba(143, 139, 106, 0.18);
-  border: 1px solid rgba(143, 139, 106, 0.45);
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255,255,255,0.95),
+    rgba(230,225,215,0.8)
+  );
+
+  border: 1px solid rgba(140,120,80,0.45);
 
   display: flex;
   align-items: center;
   justify-content: center;
 
   cursor: pointer;
-  opacity: 0.8;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  opacity: 0.85;
+  transition: transform 0.25s ease, opacity 0.25s ease;
 
-  z-index: 1000;
-}
-
-.project-link-btn:hover {
-  opacity: 1;
-  transform: scale(1.08);
+  z-index: 6;
 }
 
 .project-link-btn span {
-  font-size: 16px;
+  font-size: 20px; /* 🖼️ reads clearly */
   line-height: 1;
 }
 
