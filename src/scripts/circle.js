@@ -86,9 +86,9 @@ async function loadRiteMembers() {
 
   const { data, error } = await supabaseClient
     .from("members")
-    .select("user_id, username, name, archetype, bio, profile_image_url, website, profile_pdf_url")
+    .select("user_id, username, name, bio, profile_image_url, website, profile_pdf_url")
     .not("username", "is", null)
-    .not("archetype", "is", null)
+    
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -111,7 +111,7 @@ function spawnBubble(member) {
   bubble.innerHTML = `
     <div class="bubble-inner">
       <span class="bubble-name">${member.name}</span>
-      <span class="bubble-archetype">${member.archetype}</span>
+      <span class="bubble-archetype">${member.username}</span>
     </div>
   `;
 
@@ -192,6 +192,12 @@ if (
 
 const linkInput = document.getElementById("profileLink");
 const linkDisplay = document.getElementById("profileLinkDisplay");
+
+if (!linkInput || !linkDisplay) {
+  console.warn("Profile link elements missing from DOM");
+  return;
+}
+
 
 profileUsername.textContent = member.name || "";
 

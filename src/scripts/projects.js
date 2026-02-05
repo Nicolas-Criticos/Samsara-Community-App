@@ -64,15 +64,17 @@ async function loadProjects() {
   const { data, error } = await supabaseClient
     .from("projects")
     .select(`
-      id,
-      title,
-      description,
-      image_url,
-      status,
-      roles_needed,
-      created_by,
-      chinese_new_year
-    `)
+  id,
+  title,
+  description,
+  image_url,
+  status,
+  roles_needed,
+  created_by,
+  chinese_new_year,
+  inspiration_link
+`)
+
     .eq("realm", realm)
     .eq("archived", false)
     .order("created_at", { ascending: true });
@@ -165,6 +167,11 @@ async function openProjectDetail(project) {
     detailImage.style.display = "none";
   }
 
+  if (project.inspiration_link) {
+  renderInspirationButton(project.inspiration_link);
+}
+
+
   const { data: creator } = await supabaseClient
     .from("members")
     .select("username")
@@ -186,6 +193,9 @@ async function openProjectDetail(project) {
     renderEndProjectButton(project);
     loadApplications(project.id);
   }
+
+  console.log("project.inspiration_link =", project.inspiration_link);
+
 }
 
 /* ======================================================
@@ -441,6 +451,8 @@ async function submitProject() {
   const description = document.getElementById("createProjectDescription").value.trim();
   const timeline = document.getElementById("createProjectTimeline").value.trim();
   const imageInput = document.getElementById("projectImageUpload");
+const inspirationLink =
+  document.getElementById("inspiration_link")?.value.trim() || null;
 
   const { data: { session }, error: sessionError } =
   await supabaseClient.auth.getSession();
@@ -496,17 +508,19 @@ if (!session || sessionError) {
   ===================================== */
   const { data, error } = await supabaseClient
     .from("projects")
-    .insert([{
-      title,
-      description,
-      timeline,
-      status,
-      created_by: currentUserId,
-      realm,
-      archived: false,
-      chinese_new_year: chineseNewYear,
-      image_url
-    }])
+   .insert([{
+  title,
+  description,
+  timeline,
+  status,
+  created_by: currentUserId,
+  realm,
+  archived: false,
+  chinese_new_year: chineseNewYear,
+  image_url,
+  inspiration_link: inspirationLink
+}])
+
     .select()
     .single();
 
@@ -523,6 +537,35 @@ if (!session || sessionError) {
   spawnProjectNode(data);
 }
 
+function renderInspirationButton(link) {
+  document.querySelector(".project-link-btn")?.remove();
+
+  const btn = document.createElement("div");
+  btn.className = "project-link-btn";
+  btn.title = "View visual inspiration";
+
+  // Icon
+  btn.innerHTML = `<span>🖼️</span>`;
+
+  btn.onclick = () => {
+    window.open(link, "_blank", "noopener,noreferrer");
+  };
+
+  // Append INSIDE the circle
+  detailInner.appendChild(btn);
+
+  // Position INSIDE the circle (top-right quadrant)
+  requestAnimationFrame(() => {
+    const rect = detailInner.getBoundingClientRect();
+    const size = 44;
+
+    // place it inside the circular boundary
+    btn.style.left = `${rect.width - size - 24}px`;
+    btn.style.top = `24px`;
+  });
+}
+
+
 
 /* ======================================================
    GLOBAL EXPORTS
@@ -532,4 +575,5 @@ window.closeProjectCreate = closeProjectCreate;
 window.submitProject = submitProject;
 window.closeProjectDetail = () => {
   detailModal.style.display = "none";
+  document.querySelector(".project-link-btn")?.remove();
 };

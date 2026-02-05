@@ -139,23 +139,23 @@
 <div class="project-create" id="projectCreate" style="display:none;">
   <div class="project-create-inner">
 
-    <h3>Seed a Project</h3>
+    <h3>Seed an Offering</h3>
 
     <input
       id="createProjectTitle"
       class="project-input"
-      placeholder="Project name"
+      placeholder="Name of Offering"
       autocomplete="off" />
 
     <textarea
       id="createProjectDescription"
       class="project-textarea"
-      placeholder="Project description"></textarea>
+      placeholder="Description"></textarea>
 
     <textarea
       id="createProjectTimeline"
       class="project-textarea"
-      placeholder="Timeline / rhythm"></textarea>
+      placeholder="Timespan / rhythm"></textarea>
 
     <input
       type="file"
@@ -185,12 +185,25 @@
   <input type="checkbox" id="createProjectCNY" />
   🧧 Chinese New Year
 </label>
+
+<div class="form-group inspiration">
+  <label for="inspiration_link">Vision Board</label>
+  <input
+    type="url"
+    id="inspiration_link"
+    name="inspiration_link"
+    placeholder="Pinterest, Figma, Drive…"
+  />
+</div>
+
+
+
 <div></div>
     <button
       class="project-action-open"
       type="button"
       onclick="window.submitProject()">
-      SEED PROJECT
+      SEED OFFERING
     </button>
 
     <button

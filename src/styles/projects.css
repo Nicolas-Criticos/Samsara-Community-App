@@ -175,8 +175,8 @@ body[data-realm="samsara"] .portal-bg::before {
 ====================================================== */
 .project-node {
   position: absolute;
-  width: 120px;
-  height: 120px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
 
   display: flex;
@@ -583,6 +583,99 @@ body[data-realm="samsara"] .portal-bg::before {
 .project-status-toggle {
   margin: 0.4rem 0 0.2rem;
 }
+
+/* ===============================
+   PROJECT INSPIRATION SIDE BUTTON
+=============================== */
+/* ===============================
+   PROJECT INSPIRATION SIDE BUTTON
+=============================== */
+
+.project-detail-inner {
+  position: relative; /* 🔑 anchor */
+  overflow: hidden;
+}
+
+/* ===============================
+   PROJECT INSPIRATION BUTTON (FIXED)
+=============================== */
+
+.project-link-btn {
+  position: fixed;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+
+  background: rgba(143, 139, 106, 0.18);
+  border: 1px solid rgba(143, 139, 106, 0.45);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+
+  z-index: 1000;
+}
+
+.project-link-btn:hover {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.project-link-btn span {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* ===============================
+   SUBTLE INSPIRATION LINK INPUT
+=============================== */
+
+.form-group.inspiration {
+  margin-top: 6px;
+  
+}
+
+.form-group.inspiration label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(42, 40, 40, 0.5);
+}
+
+.form-group.inspiration input {
+  height: 32px;
+  font-size: 13px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(143, 139, 106, 0.35);
+  border-radius: 6px;
+  color: #2b2a2a;
+}
+
+.form-group.inspiration input::placeholder {
+  color: rgba(5, 4, 4, 0.35);
+}
+
+.form-group.inspiration input:focus {
+  outline: none;
+  border-style: solid;
+  border-color: rgba(143, 139, 106, 0.6);
+  opacity: 1;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .project-link-btn {
+    right: -18px;
+    width: 40px;
+    height: 40px;
+  }
+}
+
 
 @media (max-width: 768px) {
 
