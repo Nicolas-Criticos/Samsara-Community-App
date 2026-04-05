@@ -1,8 +1,13 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import CirclePage from "./pages/CirclePage.jsx";
-import ProjectFieldPage from "./pages/ProjectFieldPage.jsx";
+import CirclePage from "./pages/circle/index.jsx";
+import LoginPage from "./pages/login/index.jsx";
+import ProjectsPage from "./pages/projects/index.jsx";
+
+function LegacyFieldRedirect() {
+  const { realm } = useParams();
+  return <Navigate to={`/projects/${realm}`} replace />;
+}
 
 export default function App() {
   return (
@@ -17,13 +22,14 @@ export default function App() {
         }
       />
       <Route
-        path="/field/:realm"
+        path="/projects/:realm"
         element={
           <ProtectedRoute>
-            <ProjectFieldPage />
+            <ProjectsPage />
           </ProtectedRoute>
         }
       />
+      <Route path="/field/:realm" element={<LegacyFieldRedirect />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
