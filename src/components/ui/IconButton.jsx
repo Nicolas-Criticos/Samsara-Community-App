@@ -1,5 +1,4 @@
 import { cn } from "../../lib/cn.js";
-import "./ui.css";
 
 function IconPlus({ "aria-hidden": ah = true }) {
   return (
@@ -53,10 +52,15 @@ export default function IconButton({
   return (
     <button
       type={type}
-      className={cn("ui-icon-button", className)}
+      className={cn(
+        "inline-flex items-center justify-center border-0 bg-transparent p-0 font-sans normal-case tracking-normal text-inherit shadow-none outline-none transition-transform hover:scale-100! hover:shadow-none! active:scale-100! disabled:cursor-not-allowed disabled:opacity-45",
+        className
+      )}
       {...props}
     >
-      <span className="ui-icon-button__graphic">{content}</span>
+      <span className="flex h-full w-full items-center justify-center leading-none [&_svg]:block [&_svg]:h-[55%] [&_svg]:w-[55%] [&_svg]:max-h-7 [&_svg]:max-w-7 [&_svg]:shrink-0">
+        {content}
+      </span>
     </button>
   );
 }

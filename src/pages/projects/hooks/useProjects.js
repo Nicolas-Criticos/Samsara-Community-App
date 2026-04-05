@@ -45,7 +45,7 @@ export function useProjects() {
   const [detailContributors, setDetailContributors] = useState("");
   const [detailRoles, setDetailRoles] = useState("");
   const [primaryConfig, setPrimaryConfig] = useState(() =>
-    emptyPrimaryConfig()
+    emptyPrimaryConfig(isVrisch)
   );
   const createImageFileRef = useRef(null);
   const [inspirationLink, setInspirationLink] = useState(null);
@@ -132,8 +132,8 @@ export function useProjects() {
     setInspirationLink(null);
     setApplicationBanner(null);
     setShowEndProject(false);
-    setPrimaryConfig(emptyPrimaryConfig());
-  }, []);
+    setPrimaryConfig(emptyPrimaryConfig(isVrisch));
+  }, [isVrisch]);
 
   const joinProject = useCallback(
     async (project) => {
@@ -177,14 +177,31 @@ export function useProjects() {
   const applyPrimaryForProjectStable = useCallback(
     (project) => {
       setPrimaryConfig(
-        buildPrimaryActionConfig(project, currentUserId, {
-          joinProject,
-          applyToProject,
-        })
+        buildPrimaryActionConfig(
+          project,
+          currentUserId,
+          {
+            joinProject,
+            applyToProject,
+          },
+          isVrisch
+        )
       );
     },
-    [currentUserId, joinProject, applyToProject]
+    [currentUserId, joinProject, applyToProject, isVrisch]
   );
+
+  useEffect(() => {
+    if (!detailProject || !currentUserId) return;
+    setPrimaryConfig(
+      buildPrimaryActionConfig(
+        detailProject,
+        currentUserId,
+        { joinProject, applyToProject },
+        isVrisch
+      )
+    );
+  }, [isVrisch, realm, detailProject, currentUserId, joinProject, applyToProject]);
 
   const loadApplications = useCallback(
     async (projectId) => {

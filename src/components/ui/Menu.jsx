@@ -1,9 +1,8 @@
 import { cn } from "../../lib/cn.js";
-import "./ui.css";
 
 export function MenuList({ className, children, ...props }) {
   return (
-    <ul className={cn("ui-menu-list", className)} role="menu" {...props}>
+    <ul className={cn("m-0 list-none p-0", className)} role="menu" {...props}>
       {children}
     </ul>
   );
@@ -11,7 +10,14 @@ export function MenuList({ className, children, ...props }) {
 
 export function MenuItem({ className, children, ...props }) {
   return (
-    <li className={cn("ui-menu-item", className)} role="none" {...props}>
+    <li
+      className={cn(
+        "m-0 p-0 [&_a]:w-full [&_a]:rounded-lg [&_a]:text-inherit [&_button]:w-full [&_button]:rounded-lg [&_button]:text-inherit",
+        className
+      )}
+      role="none"
+      {...props}
+    >
       {children}
     </li>
   );

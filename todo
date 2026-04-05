@@ -1,0 +1,25 @@
+- add table button for admins that goes to a table view of projects/users with more info like started/joined dates, progress, and management options like delete
+- add supabase functionality for user/project admin
+- add functionality for members to post progress updates
+- allow members to add subtasks to projects
+- add a project detail view
+  Please add a new button to the project modal "View more..." at the bottom of the modal content that redirects the user to a new page /projects/<project-name> which has some more details of the project (these are the supabase table column names): "timeline", "status", "roles_needed"
+
+- add project leads role?
+
+  - limit "update" functionality to leads
+
+- add calendar view
+
+- move samsara/vrischgewagt to a config style of thing (for names other other ternaries on projects page) as "entities"/project groups
+- extract this further to a "farm/land" scope so I can duplicate for apieskraal/me where the above is this "land's conifg"
+- update selector to be toggle like it is if land has two and a drop down select if has more than 2
+- allow members to apply to be a part of multiple lands/see projects on other lands
+
+- add jsdoc to all components / hooks
+- add tests?
+- add storybook?
+- update forms to react-hook-form
+- make roles multiple so can be admin, member (or is admin a diff table where you can also define which projects you're admin of so we can hinder cross risk), add "super_admin" if needed?
+- update to yarn / pnpm
+- use react query for api calls

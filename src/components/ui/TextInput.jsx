@@ -1,6 +1,5 @@
 import { forwardRef } from "react";
 import { cn } from "../../lib/cn.js";
-import "./ui.css";
 
 const TextInput = forwardRef(function TextInput(
   { className, type = "text", ...props },
@@ -10,7 +9,10 @@ const TextInput = forwardRef(function TextInput(
     <input
       ref={ref}
       type={type}
-      className={cn("ui-text-input", className)}
+      className={cn(
+        "box-border font-[family:inherit] disabled:opacity-[0.85]",
+        className
+      )}
       {...props}
     />
   );

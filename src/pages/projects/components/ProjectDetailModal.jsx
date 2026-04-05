@@ -5,6 +5,7 @@ import { useInspirationButtonLayout } from "../hooks/useInspirationButtonLayout.
 export default function ProjectDetailModal({
   project,
   isDetailCreator,
+  isVrisch,
   detailCreator,
   detailContributors,
   detailRoles,
@@ -28,48 +29,79 @@ export default function ProjectDetailModal({
   if (!project) return null;
 
   return (
-    <div className="project-detail" id="projectDetail" style={{ display: "flex" }}>
-      <div className="project-detail-inner" ref={innerRef}>
+    <div
+      className={`fixed inset-0 z-20 flex items-center justify-center ${
+        isVrisch ? "bg-black/55" : "bg-[rgba(246,243,238,0.9)]"
+      }`}
+      id="projectDetail"
+    >
+      <div
+        ref={innerRef}
+        className={`relative grid h-[min(90vw,600px)] w-[min(90vw,600px)] grid-rows-[auto_1fr_auto_auto_auto] items-center gap-3 overflow-hidden rounded-full px-12 py-12 text-center max-md:h-[min(92vh,520px)] max-md:pb-8 ${
+          isVrisch
+            ? "bg-[radial-gradient(circle_at_center,rgba(32,32,32,0.96),rgba(18,18,18,0.92))] text-[rgba(235,230,220,0.92)] shadow-[0_0_45px_rgba(0,0,0,0.9),inset_0_0_28px_rgba(255,255,255,0.035)]"
+            : "bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.98),rgba(235,230,220,0.9))]"
+        }`}
+      >
         <IconButton
           icon="close"
-          className="project-close-btn"
+          className={`absolute left-1/2 top-3.5 z-5 flex h-8 w-8 -translate-x-1/2 cursor-pointer items-center justify-center rounded-full border-0 text-[1.25rem] font-light leading-none shadow-none transition-all duration-250 ease-in-out [&_span_svg]:max-h-4 [&_span_svg]:max-w-4 ${
+            isVrisch
+              ? "bg-white/10 text-[rgba(235,230,220,0.7)] hover:bg-white/20 hover:scale-[1.12]!"
+              : "bg-white/35 text-[rgba(60,50,40,0.65)] hover:scale-[1.12]! hover:bg-white/65"
+          }`}
           onClick={onClose}
           aria-label="Close project"
         />
         <div />
 
-        <div className="project-header">
+        <div className="flex flex-col items-center gap-2.5">
           {project.image_url ? (
             <img
               id="detailProjectImage"
-              className="project-detail-image"
+              className={`max-h-40 w-full rounded-[14px] object-cover ${
+                isVrisch ? "brightness-[0.88] contrast-[0.95]" : ""
+              }`}
               alt=""
               src={project.image_url}
             />
           ) : null}
-          <h2 className="project-title">{project.title}</h2>
+          <h2
+            className={
+              isVrisch ? "text-[rgba(245,240,230,0.95)]" : "text-inherit"
+            }
+          >
+            {project.title}
+          </h2>
         </div>
 
-        <div className="project-core">
-          <p className="project-description">{project.description}</p>
+        <div className="mx-auto max-w-[85%]">
+          <p
+            className={`text-[0.85rem] leading-relaxed ${
+              isVrisch ? "text-[rgba(220,215,205,0.85)]" : ""
+            }`}
+          >
+            {project.description}
+          </p>
         </div>
 
         {inspirationLink ? (
           <IconButton
-            className="project-link-btn"
+            className="absolute z-6 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-[rgba(140,120,80,0.45)] bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.95),rgba(230,225,215,0.8))] opacity-85 shadow-none transition-all duration-250 ease-in-out hover:opacity-100 max-md:right-[-18px] max-md:h-10 max-md:w-10"
             title="View visual inspiration"
             style={inspirationBtnStyle}
             onClick={() =>
               window.open(inspirationLink, "_blank", "noopener,noreferrer")
             }
           >
-            <span>🖼️</span>
+            <span className="text-xl leading-none">🖼️</span>
           </IconButton>
         ) : null}
 
         {isDetailCreator ? (
-          <div className="project-status-toggle" id="projectStatusControl">
+          <div className="my-1" id="projectStatusControl">
             <select
+              className="cursor-pointer appearance-none rounded-full border-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.95),rgba(230,225,215,0.85))] px-5 py-2 text-[0.7rem] uppercase tracking-[0.18em] text-[rgba(60,50,40,0.75)] transition-[filter] duration-200 hover:brightness-[1.05]"
               value={project.status}
               onChange={(e) => onStatusChange(e.target.value, project)}
             >
@@ -82,15 +114,19 @@ export default function ProjectDetailModal({
           <div id="projectStatusControl" />
         )}
 
-        <div className="project-meta">
-          <div className="project-meta-line">{detailCreator}</div>
-          <div className="project-meta-line">{detailContributors}</div>
-          <div className="project-meta-line">{detailRoles}</div>
+        <div
+          className={`text-[0.8rem] ${
+            isVrisch ? "text-[rgba(210,205,195,0.75)]" : "text-[rgba(43,43,43,0.65)]"
+          }`}
+        >
+          <div>{detailCreator}</div>
+          <div>{detailContributors}</div>
+          <div>{detailRoles}</div>
         </div>
 
         {applicationBanner ? (
           <div
-            className="application-bubble"
+            className="cursor-pointer rounded-full bg-amber-100/90 px-4 py-2 text-center text-[0.7rem] uppercase tracking-wider text-amber-950 shadow-sm transition-transform hover:scale-[1.02]"
             onClick={() =>
               onHandleApplications(
                 applicationBanner.apps,
@@ -118,14 +154,14 @@ export default function ProjectDetailModal({
         {showEndProject && project.created_by === currentUserId ? (
           <button
             type="button"
-            className="project-end-btn project-action-btn subtle"
+            className="cursor-pointer rounded-full border border-[rgba(120,90,60,0.35)] bg-transparent px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] text-[rgba(120,90,60,0.85)] shadow-none transition-all duration-250 ease-in-out hover:scale-105 max-md:mt-2.5 max-md:inline-flex max-md:w-full max-md:max-w-[280px] max-md:justify-center"
             onClick={() => onEndProject(project)}
           >
             End Project
           </button>
         ) : null}
 
-        <div className="project-action-ring">
+        <div className="mt-6 flex shrink-0 flex-col items-center gap-2.5 max-md:sticky max-md:bottom-0 max-md:bg-linear-to-t max-md:from-white/95 max-md:via-white/60 max-md:to-transparent max-md:pt-3">
           {!primaryConfig.hidden ? (
             <button
               type="button"
