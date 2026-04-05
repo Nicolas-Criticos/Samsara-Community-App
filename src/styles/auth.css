@@ -35,3 +35,26 @@
   color: white;
   cursor: pointer;
 }
+
+.auth-card button.link-like {
+  width: auto;
+  margin-top: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent-earth);
+  text-decoration: underline;
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: none;
+}
+
+.auth-card button.link-like:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+#authError {
+  margin-top: 1rem;
+  color: #8b4513;
+  font-size: 0.9rem;
+}

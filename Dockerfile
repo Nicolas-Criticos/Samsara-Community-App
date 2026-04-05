@@ -1,8 +1,13 @@
-#  Build Project in a Production State
+# Build
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Serve
 FROM nginx:1.25-alpine
-
-# Actual Image
 WORKDIR /usr/share/nginx/html
-
-COPY ./src .
+COPY --from=build /app/dist .
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf

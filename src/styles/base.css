@@ -13,6 +13,10 @@ html, body {
   height: 100%;
 }
 
+#root {
+  min-height: 100%;
+}
+
 /* Prevent accidental text selection */
 * {
   -webkit-tap-highlight-color: transparent;
