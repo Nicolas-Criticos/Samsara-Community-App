@@ -1,9 +1,12 @@
 import { useRef } from "react";
+import { Link } from "react-router-dom";
 import { IconButton } from "../../../components/ui/index.js";
+import { projectDetailHref } from "../../../lib/slug.js";
 import { useInspirationButtonLayout } from "../hooks/useInspirationButtonLayout.js";
 
 export default function ProjectDetailModal({
   project,
+  realm,
   isDetailCreator,
   isVrisch,
   detailCreator,
@@ -27,6 +30,8 @@ export default function ProjectDetailModal({
   );
 
   if (!project) return null;
+
+  const viewMoreTo = projectDetailHref(realm, project.title);
 
   return (
     <div
@@ -159,6 +164,20 @@ export default function ProjectDetailModal({
           >
             End Project
           </button>
+        ) : null}
+
+        {viewMoreTo ? (
+          <Link
+            to={viewMoreTo}
+            onClick={onClose}
+            className={`text-[0.68rem] uppercase tracking-[0.2em] underline underline-offset-4 transition-opacity hover:opacity-100 ${
+              isVrisch
+                ? "text-[rgba(210,205,195,0.75)]"
+                : "text-[rgba(80,70,55,0.65)]"
+            }`}
+          >
+            View more…
+          </Link>
         ) : null}
 
         <div className="mt-6 flex shrink-0 flex-col items-center gap-2.5 max-md:sticky max-md:bottom-0 max-md:bg-linear-to-t max-md:from-white/95 max-md:via-white/60 max-md:to-transparent max-md:pt-3">

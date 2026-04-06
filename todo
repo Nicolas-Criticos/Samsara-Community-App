@@ -1,9 +1,15 @@
 - add table button for admins that goes to a table view of projects/users with more info like started/joined dates, progress, and management options like delete
+  Please add a button at the top of both the users page and projects page that is visible if the currently logged in user has a "user_role" (field name on user object of type enum) of "Admin" that says "View table" which displays a table view of these datasets (render using a reusable component defined in components that uses '@tanstack/react-table' package). Include columns for all known data type fields.
 - add supabase functionality for user/project admin
 - add functionality for members to post progress updates
+  If the currently logged in user's username is in the list of project contributors (member_id field of project_contributors table where project_id matches current detail project) then show a button on the detail view "Add update" that triggers opening a modal (please see existing modal components to see how this is done and match implementation) which shows a form with inputs matching the previously defined schema for project updates including react-dropzone for the image. Link this submission to supabase and ensure data on the detail page is updated upon closing the modal/saving. Instead of "Join project" button if the logged in user is already a contributor have a "Leave project" button with appropriate styling
+  Add this modal to also have edit functionality as
 - allow members to add subtasks to projects
+  Please do a similar thing (if user is a contributor) that allows the user to add a new subtask to the project. Also add basic task management including setting the "start_date" and "end_date" fields (supabase date fields), the "status" (supabase enum field with options: "Pending, Started, Finalising, Completed, Running, Closed") and updating the task name/description (text fields) whilst using the same modal as adding a task
 - add a project detail view
-  Please add a new button to the project modal "View more..." at the bottom of the modal content that redirects the user to a new page /projects/<project-name> which has some more details of the project (these are the supabase table column names): "timeline", "status", "roles_needed"
+  Please add a new button to the project modal "View more..." at the bottom of the modal content that redirects the user to a new page /projects/<project-name> which has some more details of the project (these are the supabase table column names): "timeline", "status", "roles_needed" as well as calls and lists data from two new supabase tables (this would need new updates in the lib files) "project_tasks" and "project_updates" which has fields NAME of "name"/"title" respectively, and shared field names of description (text), image (an image - add image upload functionality with drag and drop using "react-dropzone" package) between the two tables. Tasks is a checklist of items that need to be completed as part of the project - these items also have a status field - ensure the UI shows this is a pill on the page. Updates is a social/progress update with the info. Show these as a timeline type view following their created_at date
+
+- add "moments" alongside projects to attach images etc to
 
 - add project leads role?
 

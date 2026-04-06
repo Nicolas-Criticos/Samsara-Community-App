@@ -16,6 +16,7 @@ import {
   formatContributorsLine,
   insertProjectApplication,
   insertProjectRow,
+  removeProjectContributor,
   setApplicationStatus,
   updateProjectStatus,
 } from "../../../lib/projectsApi.js";
@@ -51,6 +52,7 @@ export function useProjects() {
   const [inspirationLink, setInspirationLink] = useState(null);
   const [applicationBanner, setApplicationBanner] = useState(null);
   const [showEndProject, setShowEndProject] = useState(false);
+  const [isDetailContributor, setIsDetailContributor] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
@@ -132,6 +134,7 @@ export function useProjects() {
     setInspirationLink(null);
     setApplicationBanner(null);
     setShowEndProject(false);
+    setIsDetailContributor(false);
     setPrimaryConfig(emptyPrimaryConfig(isVrisch));
   }, [isVrisch]);
 
@@ -155,6 +158,31 @@ export function useProjects() {
       });
 
       await refreshContributorsLine(project.id);
+      setIsDetailContributor(true);
+    },
+    [realm, currentUserId, refreshContributorsLine]
+  );
+
+  const leaveProjectFromField = useCallback(
+    async (proj) => {
+      if (
+        !confirm(
+          "Leave this project? You can join again later if it stays open."
+        )
+      ) {
+        return;
+      }
+      const { error } = await removeProjectContributor({
+        projectId: proj.id,
+        memberId: currentUserId,
+        realm,
+      });
+      if (error) {
+        alert(error.message);
+        return;
+      }
+      setIsDetailContributor(false);
+      await refreshContributorsLine(proj.id);
     },
     [realm, currentUserId, refreshContributorsLine]
   );
@@ -175,33 +203,35 @@ export function useProjects() {
   );
 
   const applyPrimaryForProjectStable = useCallback(
-    (project) => {
+    (proj) => {
       setPrimaryConfig(
         buildPrimaryActionConfig(
-          project,
+          proj,
           currentUserId,
           {
             joinProject,
             applyToProject,
+            leaveProject: leaveProjectFromField,
+            isContributor: isDetailContributor,
           },
           isVrisch
         )
       );
     },
-    [currentUserId, joinProject, applyToProject, isVrisch]
+    [
+      currentUserId,
+      joinProject,
+      applyToProject,
+      leaveProjectFromField,
+      isDetailContributor,
+      isVrisch,
+    ]
   );
 
   useEffect(() => {
     if (!detailProject || !currentUserId) return;
-    setPrimaryConfig(
-      buildPrimaryActionConfig(
-        detailProject,
-        currentUserId,
-        { joinProject, applyToProject },
-        isVrisch
-      )
-    );
-  }, [isVrisch, realm, detailProject, currentUserId, joinProject, applyToProject]);
+    applyPrimaryForProjectStable(detailProject);
+  }, [detailProject, currentUserId, applyPrimaryForProjectStable]);
 
   const loadApplications = useCallback(
     async (projectId) => {
@@ -264,12 +294,17 @@ export function useProjects() {
       setDetailCreator(`Created by ${creator?.username || "Unknown"}`);
       await refreshContributorsLine(project.id);
 
+      const { data: contribRow } = await findExistingContributor(
+        project.id,
+        currentUserId,
+        realm
+      );
+      setIsDetailContributor(Boolean(contribRow));
+
       if (project.created_by === currentUserId) {
         setShowEndProject(true);
         await loadApplications(project.id);
       }
-
-      applyPrimaryForProjectStable(project);
 
       if (project.inspiration_link) {
         setInspirationLink(project.inspiration_link);
@@ -277,10 +312,10 @@ export function useProjects() {
     },
     [
       currentUserId,
+      realm,
       resetDetailUi,
       refreshContributorsLine,
       loadApplications,
-      applyPrimaryForProjectStable,
     ]
   );
 

@@ -1,5 +1,6 @@
 import { supabase } from "./supabase.js";
 import { fetchMemberUsernamesByUserIds } from "./membersApi.js";
+import { slugifyProjectTitle } from "./slug.js";
 
 export async function fetchProjectsInRealm(realm) {
   return supabase
@@ -105,6 +106,19 @@ export async function addProjectContributor({
   });
 }
 
+export async function removeProjectContributor({
+  projectId,
+  memberId,
+  realm,
+}) {
+  return supabase
+    .from("project_contributors")
+    .delete()
+    .eq("project_id", projectId)
+    .eq("member_id", memberId)
+    .eq("realm", realm);
+}
+
 export async function insertProjectApplication({
   projectId,
   applicantId,
@@ -151,6 +165,15 @@ export async function updateProjectStatus(projectId, realm, createdBy, status) {
     .eq("realm", realm);
 }
 
+/** Updates project row (RLS must allow creator or contributor). */
+export async function updateProjectRow(projectId, realm, patch) {
+  return supabase
+    .from("projects")
+    .update(patch)
+    .eq("id", projectId)
+    .eq("realm", realm === "vrischgewagt" ? "vrischgewagt" : "samsara");
+}
+
 export async function archiveProject(projectId, realm, createdBy) {
   return supabase
     .from("projects")
@@ -162,4 +185,40 @@ export async function archiveProject(projectId, realm, createdBy) {
 
 export async function insertProjectRow(row) {
   return supabase.from("projects").insert([row]).select().single();
+}
+
+/** Full project row for the public detail page (by slugified title). */
+export async function fetchProjectBySlug(realm, slug) {
+  const r = realm === "vrischgewagt" ? "vrischgewagt" : "samsara";
+  const { data, error } = await supabase
+    .from("projects")
+    .select(
+      `
+      id,
+      title,
+      description,
+      image_url,
+      status,
+      roles_needed,
+      timeline,
+      created_by,
+      realm,
+      archived,
+      inspiration_link,
+      chinese_new_year
+    `
+    )
+    .eq("realm", r)
+    .eq("archived", false);
+
+  if (error) {
+    return { project: null, error };
+  }
+
+  const list = data || [];
+  const match = list.find((p) => slugifyProjectTitle(p.title) === slug);
+  return {
+    project: match || null,
+    error: match ? null : { message: "Project not found" },
+  };
 }

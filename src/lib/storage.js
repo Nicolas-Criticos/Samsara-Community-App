@@ -47,3 +47,17 @@ export async function uploadProjectImageFile(file) {
   if (error) return { error, url: null };
   return { error: null, url: publicObjectUrl(STORAGE_BUCKETS.projectImages, path) };
 }
+
+/** Task / update images scoped under a project id. */
+export async function uploadProjectActivityImageFile(projectId, subfolder, file) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  const path = `projects/${projectId}/${subfolder}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKETS.projectImages)
+    .upload(path, file, {
+      upsert: false,
+      contentType: file.type,
+    });
+  if (error) return { error, url: null };
+  return { error: null, url: publicObjectUrl(STORAGE_BUCKETS.projectImages, path) };
+}

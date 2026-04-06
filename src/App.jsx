@@ -3,6 +3,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import CirclePage from "./pages/circle/index.jsx";
 import LoginPage from "./pages/login/index.jsx";
 import ProjectsPage from "./pages/projects/index.jsx";
+import ProjectDetailPage from "./pages/detail/index.jsx";
 
 function LegacyFieldRedirect() {
   const { realm } = useParams();
@@ -18,6 +19,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <CirclePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:realm/:projectSlug"
+        element={
+          <ProtectedRoute>
+            <ProjectDetailPage />
           </ProtectedRoute>
         }
       />

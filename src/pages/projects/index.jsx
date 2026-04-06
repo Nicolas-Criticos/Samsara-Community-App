@@ -100,6 +100,7 @@ export default function ProjectsPage() {
 
       <ProjectDetailModal
         project={pf.detailProject}
+        realm={pf.realm}
         isDetailCreator={pf.isDetailCreator}
         isVrisch={pf.isVrisch}
         detailCreator={pf.detailCreator}
