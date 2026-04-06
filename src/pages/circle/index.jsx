@@ -55,15 +55,15 @@ export default function CirclePage() {
       <MemberProfileModal
         profileMember={profile.profileMember}
         isSelf={profile.isSelf}
-        bio={profile.bio}
-        setBio={profile.setBio}
-        website={profile.website}
-        setWebsite={profile.setWebsite}
+        profileForm={profile.profileForm}
+        saveProfile={profile.saveProfile}
+        savePending={profile.savePending}
         projectItems={profile.projectItems}
         onClose={profile.closeMemberProfile}
-        onSaveProfile={profile.saveProfile}
         onAvatarChange={profile.onAvatarChange}
         onPdfChange={profile.onPdfChange}
+        avatarPending={profile.avatarPending}
+        pdfPending={profile.pdfPending}
       />
 
       <div className="fixed right-7 top-6 z-20 max-md:bottom-4 max-md:left-1/2 max-md:right-auto max-md:top-auto max-md:-translate-x-1/2 max-md:text-center">

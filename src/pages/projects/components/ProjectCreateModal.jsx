@@ -1,25 +1,47 @@
+import { useEffect, useRef } from "react";
+import { useForm } from "react-hook-form";
 import { Button, TextArea, TextInput } from "../../../components/ui/index.js";
 
 export default function ProjectCreateModal({
   isVrisch,
   open,
-  title,
-  setTitle,
-  description,
-  setDescription,
-  timeline,
-  setTimeline,
-  status,
-  setStatus,
-  cny,
-  setCny,
-  inspiration,
-  setInspiration,
-  imageFileRef,
-  onSubmit,
+  createProjectMutation,
   onCancel,
 }) {
+  const imageFileRef = useRef(null);
+  const { register, handleSubmit, reset } = useForm({
+    defaultValues: {
+      title: "",
+      description: "",
+      timeline: "",
+      status: "open",
+      cny: false,
+      inspiration: "",
+    },
+  });
+
+  useEffect(() => {
+    if (open) {
+      reset({
+        title: "",
+        description: "",
+        timeline: "",
+        status: "open",
+        cny: false,
+        inspiration: "",
+      });
+      if (imageFileRef.current) imageFileRef.current.value = "";
+    }
+  }, [open, reset]);
+
   if (!open) return null;
+
+  const pending = createProjectMutation.isPending;
+
+  function onSubmit(values) {
+    const imageFile = imageFileRef.current?.files?.[0] ?? null;
+    createProjectMutation.mutate({ ...values, imageFile });
+  }
 
   return (
     <div
@@ -27,12 +49,13 @@ export default function ProjectCreateModal({
         isVrisch ? "bg-black/80" : "bg-[rgba(246,243,238,0.92)]"
       }`}
     >
-      <div
+      <form
         className={`flex h-[min(85vw,520px)] w-[min(85vw,520px)] flex-col gap-3 overflow-auto rounded-full px-12 py-12 text-center ${
           isVrisch
             ? "bg-[radial-gradient(circle_at_center,rgba(26,26,26,0.96),rgba(10,10,10,0.94))] text-[rgba(235,230,220,0.92)] shadow-[0_0_55px_rgba(0,0,0,0.9),inset_0_0_28px_rgba(255,255,255,0.035)]"
             : "bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.98),rgba(235,230,220,0.9))]"
         }`}
+        onSubmit={handleSubmit(onSubmit)}
       >
         <h3>{isVrisch ? "Seed a Project" : "Seed an Offering"}</h3>
 
@@ -44,8 +67,8 @@ export default function ProjectCreateModal({
           }`}
           placeholder={isVrisch ? "Project name" : "Name of Offering"}
           autoComplete="off"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          disabled={pending}
+          {...register("title", { required: true })}
         />
 
         <TextArea
@@ -55,8 +78,8 @@ export default function ProjectCreateModal({
               : "border-0 bg-white/90 text-[#2b2b2b]"
           }`}
           placeholder={isVrisch ? "Project description" : "Description"}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          disabled={pending}
+          {...register("description", { required: true })}
         />
 
         <TextArea
@@ -66,17 +89,20 @@ export default function ProjectCreateModal({
               : "border-0 bg-white/90 text-[#2b2b2b]"
           }`}
           placeholder={isVrisch ? "Timeline / rhythm" : "Timespan / rhythm"}
-          value={timeline}
-          onChange={(e) => setTimeline(e.target.value)}
+          disabled={pending}
+          {...register("timeline")}
         />
 
         <input
           ref={imageFileRef}
           type="file"
           className={`w-full text-[0.75rem] ${
-            isVrisch ? "text-[rgba(220,215,205,0.75)]" : "text-[rgba(43,43,43,0.7)]"
+            isVrisch
+              ? "text-[rgba(220,215,205,0.75)]"
+              : "text-[rgba(43,43,43,0.7)]"
           }`}
           accept="image/*"
+          disabled={pending}
         />
 
         <div
@@ -87,27 +113,27 @@ export default function ProjectCreateModal({
           <label className="flex cursor-pointer items-center gap-2">
             <input
               type="radio"
-              name="projectStatus"
-              checked={status === "open"}
-              onChange={() => setStatus("open")}
+              value="open"
+              disabled={pending}
+              {...register("status")}
             />
             🟢 Open contribution
           </label>
           <label className="flex cursor-pointer items-center gap-2">
             <input
               type="radio"
-              name="projectStatus"
-              checked={status === "application"}
-              onChange={() => setStatus("application")}
+              value="application"
+              disabled={pending}
+              {...register("status")}
             />
             🟠 By application
           </label>
           <label className="flex cursor-pointer items-center gap-2">
             <input
               type="radio"
-              name="projectStatus"
-              checked={status === "closed"}
-              onChange={() => setStatus("closed")}
+              value="closed"
+              disabled={pending}
+              {...register("status")}
             />
             🔴 Closed
           </label>
@@ -119,8 +145,8 @@ export default function ProjectCreateModal({
               <input
                 type="checkbox"
                 className="mr-1.5"
-                checked={cny}
-                onChange={(e) => setCny(e.target.checked)}
+                disabled={pending}
+                {...register("cny")}
               />
               🧧 Chinese New Year
             </label>
@@ -137,8 +163,8 @@ export default function ProjectCreateModal({
                 name="inspiration_link"
                 className="mt-1 h-8 w-full rounded-md border border-dashed border-[rgba(143,139,106,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-1 text-[13px] text-[#2b2a2a] placeholder:text-[rgba(5,4,4,0.35)] focus:border-solid focus:border-[rgba(143,139,106,0.6)] focus:opacity-100 focus:outline-none"
                 placeholder="Pinterest, Figma, Drive…"
-                value={inspiration}
-                onChange={(e) => setInspiration(e.target.value)}
+                disabled={pending}
+                {...register("inspiration")}
               />
             </div>
           </>
@@ -146,20 +172,21 @@ export default function ProjectCreateModal({
 
         <div />
         <Button
-          type="button"
-          className={`w-full cursor-pointer rounded-full border-0 px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] text-white shadow-none transition-all duration-250 ease-in-out hover:scale-105 hover:shadow-[0_0_14px_rgba(140,120,80,0.45)] ${
+          type="submit"
+          className={`w-full cursor-pointer rounded-full border-0 px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] text-white shadow-none transition-all duration-250 ease-in-out hover:scale-105 hover:shadow-[0_0_14px_rgba(140,120,80,0.45)] disabled:cursor-not-allowed disabled:opacity-50 ${
             isVrisch
               ? "bg-[radial-gradient(circle,#7f8f6a,#4e5c3f)]"
               : "bg-[radial-gradient(circle,#8a7f6d,#6f6456)]"
           }`}
           fullWidth
-          onClick={onSubmit}
+          disabled={pending}
         >
-          {isVrisch ? "SEED PROJECT" : "SEED OFFERING"}
+          {pending ? "…" : isVrisch ? "SEED PROJECT" : "SEED OFFERING"}
         </Button>
         <Button
           type="button"
           fullWidth
+          disabled={pending}
           onClick={onCancel}
           className={
             isVrisch
@@ -169,7 +196,7 @@ export default function ProjectCreateModal({
         >
           CANCEL
         </Button>
-      </div>
+      </form>
     </div>
   );
 }

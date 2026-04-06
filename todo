@@ -18,6 +18,7 @@
 - add calendar view
 
 - move samsara/vrischgewagt to a config style of thing (for names other other ternaries on projects page) as "entities"/project groups
+  Update all usa
 - extract this further to a "farm/land" scope so I can duplicate for apieskraal/me where the above is this "land's conifg"
 - update selector to be toggle like it is if land has two and a drop down select if has more than 2
 - allow members to apply to be a part of multiple lands/see projects on other lands

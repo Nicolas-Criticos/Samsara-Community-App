@@ -1,6 +1,12 @@
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "../../../lib/supabase.js";
+import { useAuthSession } from "../../../hooks/useAuthSession.js";
+import { queryKeys } from "../../../lib/queryKeys.js";
 import { fetchMemberUsernameByUserId } from "../../../lib/membersApi.js";
 import {
   addProjectContributor,
@@ -29,23 +35,56 @@ import {
   emptyPrimaryConfig,
 } from "../../projects/lib/primaryActions.js";
 
+async function fetchProjectMeta(realm, project, userId) {
+  const pid = project.id;
+  const createdBy = project.created_by;
+
+  const [{ data: creator }, line, { data: contribRow }] = await Promise.all([
+    fetchMemberUsernameByUserId(createdBy),
+    formatContributorsLine(pid, realm),
+    findExistingContributor(pid, userId, realm),
+  ]);
+
+  let applicationBanner = null;
+  if (createdBy === userId) {
+    const { data: apps, error } = await fetchPendingApplications(pid, realm);
+    if (!error && apps?.length) {
+      const nameMap = await fetchApplicantNameMap(
+        apps.map((a) => a.applicant_id)
+      );
+      applicationBanner = { apps, nameMap, projectId: pid };
+    }
+  }
+
+  return {
+    detailCreator: `Created by ${creator?.username || "Unknown"}`,
+    detailContributors: line,
+    isContributor: Boolean(contribRow),
+    applicationBanner,
+  };
+}
+
+async function fetchActivityBundle(projectId) {
+  const [tRes, uRes] = await Promise.all([
+    fetchProjectTasks(projectId),
+    fetchProjectUpdates(projectId),
+  ]);
+  return {
+    tasks: tRes.error ? [] : tRes.data || [],
+    updates: uRes.error ? [] : uRes.data || [],
+  };
+}
+
 export function useProjectDetailPage() {
   const { realm: realmParam, projectSlug } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const realm = realmParam === "vrischgewagt" ? "vrischgewagt" : "samsara";
   const isVrisch = realm === "vrischgewagt";
 
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const [ready, setReady] = useState(false);
-  const [project, setProject] = useState(null);
-  const [tasks, setTasks] = useState([]);
-  const [updates, setUpdates] = useState([]);
-  const [loadError, setLoadError] = useState(null);
+  const { data: session, isPending: sessionPending } = useAuthSession();
+  const currentUserId = session?.user?.id ?? null;
 
-  const [detailCreator, setDetailCreator] = useState("");
-  const [detailContributors, setDetailContributors] = useState("");
-  const [applicationBanner, setApplicationBanner] = useState(null);
-  const [isContributor, setIsContributor] = useState(false);
   const [primaryConfig, setPrimaryConfig] = useState(() =>
     emptyPrimaryConfig(isVrisch)
   );
@@ -62,112 +101,69 @@ export function useProjectDetailPage() {
   }, [isVrisch]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/", { replace: true });
-        return;
-      }
-      setCurrentUserId(session.user.id);
-      setReady(true);
-    });
-  }, [navigate]);
+    if (!sessionPending && !session) {
+      navigate("/", { replace: true });
+    }
+  }, [sessionPending, session, navigate]);
 
-  const refreshContributorsLine = useCallback(
-    async (projectId) => {
-      const line = await formatContributorsLine(projectId, realm);
-      setDetailContributors(line);
-    },
-    [realm]
-  );
-
-  const reloadActivity = useCallback(async (projectId) => {
-    const [tRes, uRes] = await Promise.all([
-      fetchProjectTasks(projectId),
-      fetchProjectUpdates(projectId),
-    ]);
-    if (!tRes.error && tRes.data) setTasks(tRes.data);
-    if (!uRes.error && uRes.data) setUpdates(uRes.data);
-  }, []);
-
-  useEffect(() => {
-    if (!ready || !projectSlug) return undefined;
-    let cancelled = false;
-    setLoadError(null);
-    setDetailCreator("");
-    setDetailContributors("");
-    setApplicationBanner(null);
-    setIsContributor(false);
-    (async () => {
-      const { project: p, error } = await fetchProjectBySlug(
-        realm,
-        projectSlug
-      );
-      if (cancelled) return;
+  const projectQuery = useQuery({
+    queryKey: queryKeys.projectBySlug(realm, projectSlug ?? ""),
+    queryFn: async () => {
+      const { project, error } = await fetchProjectBySlug(realm, projectSlug);
       if (error) {
-        setProject(null);
-        setLoadError(error.message || "Could not load project");
-        return;
+        throw new Error(error.message || "Could not load project");
       }
-      if (!p) {
-        setProject(null);
-        setLoadError("Project not found");
-        return;
+      if (!project) {
+        throw new Error("Project not found");
       }
-      setProject(p);
-      await reloadActivity(p.id);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [ready, realm, projectSlug, reloadActivity]);
-
-  const loadApplications = useCallback(
-    async (projectId) => {
-      const { data: apps, error } = await fetchPendingApplications(
-        projectId,
-        realm
-      );
-
-      if (error || !apps?.length) {
-        setApplicationBanner(null);
-        return;
-      }
-
-      const userIds = apps.map((a) => a.applicant_id);
-      const nameMap = await fetchApplicantNameMap(userIds);
-      setApplicationBanner({ apps, nameMap, projectId });
+      return project;
     },
-    [realm]
-  );
+    enabled: Boolean(currentUserId && projectSlug),
+  });
 
-  useEffect(() => {
-    if (!project || !currentUserId) return undefined;
-    let cancelled = false;
-    (async () => {
-      const { data: creator } = await fetchMemberUsernameByUserId(
-        project.created_by
-      );
-      if (cancelled) return;
-      setDetailCreator(`Created by ${creator?.username || "Unknown"}`);
-      await refreshContributorsLine(project.id);
-      if (cancelled) return;
-      const { data: contribRow } = await findExistingContributor(
-        project.id,
-        currentUserId,
-        realm
-      );
-      if (cancelled) return;
-      setIsContributor(Boolean(contribRow));
-      if (project.created_by === currentUserId) {
-        await loadApplications(project.id);
-      } else {
-        setApplicationBanner(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [project, currentUserId, refreshContributorsLine, loadApplications]);
+  const project = projectQuery.data ?? null;
+  const loadError =
+    projectQuery.error?.message ??
+    (projectQuery.isError ? "Could not load project" : null);
+
+  const activityQuery = useQuery({
+    queryKey: queryKeys.projectActivity(project?.id ?? ""),
+    queryFn: () => fetchActivityBundle(project.id),
+    enabled: Boolean(project?.id),
+  });
+
+  const tasks = activityQuery.data?.tasks ?? [];
+  const updates = activityQuery.data?.updates ?? [];
+
+  const metaQuery = useQuery({
+    queryKey: [
+      ...queryKeys.projectMeta(realm, project?.id ?? "", currentUserId ?? ""),
+      project?.created_by ?? "",
+    ],
+    queryFn: () => fetchProjectMeta(realm, project, currentUserId),
+    enabled: Boolean(project?.id && currentUserId),
+  });
+
+  const detailCreator = metaQuery.data?.detailCreator ?? "";
+  const detailContributors = metaQuery.data?.detailContributors ?? "";
+  const applicationBanner = metaQuery.data?.applicationBanner ?? null;
+  const isContributor = metaQuery.data?.isContributor ?? false;
+
+  const invalidateActivity = useCallback(() => {
+    if (project?.id) {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projectActivity(project.id),
+      });
+    }
+  }, [queryClient, project?.id]);
+
+  const invalidateMeta = useCallback(() => {
+    if (project?.id && currentUserId) {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projectMeta(realm, project.id, currentUserId),
+      });
+    }
+  }, [queryClient, realm, project?.id, currentUserId]);
 
   const joinProject = useCallback(
     async (p) => {
@@ -188,10 +184,9 @@ export function useProjectDetailPage() {
         realm,
       });
 
-      await refreshContributorsLine(p.id);
-      setIsContributor(true);
+      invalidateMeta();
     },
-    [realm, currentUserId, refreshContributorsLine]
+    [realm, currentUserId, invalidateMeta]
   );
 
   const leaveProjectContributor = useCallback(
@@ -212,10 +207,9 @@ export function useProjectDetailPage() {
         alert(error.message);
         return;
       }
-      setIsContributor(false);
-      await refreshContributorsLine(p.id);
+      invalidateMeta();
     },
-    [realm, currentUserId, refreshContributorsLine]
+    [realm, currentUserId, invalidateMeta]
   );
 
   const applyToProject = useCallback(
@@ -280,17 +274,23 @@ export function useProjectDetailPage() {
         }
       }
 
-      await refreshContributorsLine(projectId);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.projectMeta(realm, projectId, currentUserId),
+      });
       alert("Applications processed.");
-      setApplicationBanner(null);
     },
-    [realm, refreshContributorsLine]
+    [realm, currentUserId, queryClient]
   );
 
-  const onStatusChange = useCallback(
-    async (newStatus, p) => {
+  const statusMutation = useMutation({
+    mutationFn: async ({ newStatus, p }) => {
       await updateProjectStatus(p.id, realm, currentUserId, newStatus);
-      setProject((prev) => (prev ? { ...prev, status: newStatus } : prev));
+    },
+    onSuccess: (_d, { newStatus, p }) => {
+      queryClient.setQueryData(
+        queryKeys.projectBySlug(realm, projectSlug),
+        (old) => (old ? { ...old, status: newStatus } : old)
+      );
       setPrimaryConfig(
         buildPrimaryActionConfig(
           { ...p, status: newStatus },
@@ -305,38 +305,16 @@ export function useProjectDetailPage() {
         )
       );
     },
-    [
-      realm,
-      currentUserId,
-      joinProject,
-      applyToProject,
-      leaveProjectContributor,
-      isContributor,
-      isVrisch,
-    ]
-  );
+  });
 
-  const endProject = useCallback(
-    async (p) => {
-      if (!confirm("This will end the project permanently.")) return;
-
+  const endProject = useMutation({
+    mutationFn: async (p) => {
       await archiveProject(p.id, realm, currentUserId);
+    },
+    onSuccess: () => {
       navigate(`/projects/${realm}`, { replace: true });
     },
-    [realm, currentUserId, navigate]
-  );
-
-  const isCreator = Boolean(project && currentUserId === project.created_by);
-
-  const showContributorAddUpdate = Boolean(
-    isContributor && project && currentUserId !== project.created_by
-  );
-
-  const canManageTasks = Boolean(
-    project &&
-      currentUserId &&
-      (project.created_by === currentUserId || isContributor)
-  );
+  });
 
   const addTask = useCallback(
     async ({ name, description, file, start_date, end_date, status }) => {
@@ -362,10 +340,10 @@ export function useProjectDetailPage() {
         end_date,
       });
       if (error) return { error: error.message };
-      await reloadActivity(project.id);
+      invalidateActivity();
       return {};
     },
-    [project, realm, reloadActivity]
+    [project, realm, invalidateActivity]
   );
 
   const updateTask = useCallback(
@@ -403,10 +381,10 @@ export function useProjectDetailPage() {
 
       const { error } = await updateProjectTask(taskId, row);
       if (error) return { error: error.message };
-      await reloadActivity(project.id);
+      invalidateActivity();
       return {};
     },
-    [project, reloadActivity]
+    [project, invalidateActivity]
   );
 
   const addUpdate = useCallback(
@@ -424,17 +402,26 @@ export function useProjectDetailPage() {
       }
       const { error } = await insertProjectUpdate({
         projectId: project.id,
-        realm,
         title,
         description,
         image,
       });
       if (error) return { error: error.message };
-      await reloadActivity(project.id);
+      invalidateActivity();
       return {};
     },
-    [project, realm, reloadActivity]
+    [project, realm, invalidateActivity]
   );
+
+  const creatorUpdateMutation = useMutation({
+    mutationFn: async ({ title, description, file }) => {
+      const result = await addUpdate({ title, description, file });
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
+  });
 
   const inspirationLink =
     project?.inspiration_link && !isVrisch ? project.inspiration_link : null;
@@ -447,6 +434,22 @@ export function useProjectDetailPage() {
     project && currentUserId && project.created_by === currentUserId
   );
 
+  const isCreator = Boolean(project && currentUserId === project.created_by);
+
+  const showContributorAddUpdate = Boolean(
+    isContributor && project && currentUserId !== project.created_by
+  );
+
+  const canManageTasks = Boolean(
+    project &&
+      currentUserId &&
+      (project.created_by === currentUserId || isContributor)
+  );
+
+  const ready = !sessionPending && Boolean(session);
+  const isProjectLoading =
+    Boolean(currentUserId && projectSlug) && projectQuery.isPending;
+
   return {
     realm,
     isVrisch,
@@ -456,6 +459,7 @@ export function useProjectDetailPage() {
     updates,
     loadError,
     ready,
+    isProjectLoading,
     currentUserId,
     isCreator,
     isContributor,
@@ -464,6 +468,14 @@ export function useProjectDetailPage() {
     navigate,
     addTask,
     addUpdate,
+    creatorUpdatePending: creatorUpdateMutation.isPending,
+    submitCreatorUpdate: (payload, callbacks = {}) => {
+      creatorUpdateMutation.mutate(payload, {
+        onSuccess: () => callbacks.onSuccess?.(),
+        onError: (error) =>
+          callbacks.onError?.(error?.message || "Could not add update."),
+      });
+    },
     updateTask,
     detailCreator,
     detailContributors,
@@ -472,8 +484,12 @@ export function useProjectDetailPage() {
     applicationBanner,
     primaryConfig,
     showEndProject,
-    onStatusChange,
-    endProject,
+    onStatusChange: (newStatus, p) =>
+      statusMutation.mutate({ newStatus, p }),
+    endProject: (p) => {
+      if (!confirm("This will end the project permanently.")) return;
+      endProject.mutate(p);
+    },
     handleApplications,
   };
 }

@@ -10,19 +10,22 @@ import { memberDisplayName } from "../../../lib/memberDisplay.js";
 export default function MemberProfileModal({
   profileMember,
   isSelf,
-  bio,
-  setBio,
-  website,
-  setWebsite,
+  profileForm,
+  saveProfile,
+  savePending,
   projectItems,
   onClose,
-  onSaveProfile,
   onAvatarChange,
   onPdfChange,
+  avatarPending,
+  pdfPending,
 }) {
   const pdfInputRef = useRef(null);
+  const { register } = profileForm;
 
   if (!profileMember) return null;
+
+  const saving = savePending || avatarPending || pdfPending;
 
   return (
     <div
@@ -69,6 +72,7 @@ export default function MemberProfileModal({
                     type="file"
                     accept="image/*"
                     hidden
+                    disabled={saving}
                     onChange={onAvatarChange}
                   />
                 </>
@@ -83,14 +87,14 @@ export default function MemberProfileModal({
           </div>
         </section>
 
-        <section className="relative flex w-full max-w-[340px] flex-col items-center gap-3">
+        <div className="relative flex w-full max-w-[340px] flex-col items-center gap-3">
           {isSelf ? (
             <TextInput
               type="url"
               className="relative w-full rounded-[14px] border-0 bg-white/65 px-3.5 py-3 text-center text-[0.85rem] text-[rgba(43,43,43,0.75)] max-md:portrait:w-full"
               placeholder="Website or Socials link"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
+              disabled={saving}
+              {...register("website")}
             />
           ) : profileMember.website ? (
             <a
@@ -111,9 +115,8 @@ export default function MemberProfileModal({
             className="relative w-full rounded-[14px] border-0 bg-white/65 px-3.5 py-3 text-center text-[0.85rem] text-[rgba(43,43,43,0.75)] max-md:portrait:w-full"
             placeholder="Write what path you took to get here.."
             rows={5}
-            value={bio}
-            disabled={!isSelf}
-            onChange={(e) => setBio(e.target.value)}
+            disabled={!isSelf || saving}
+            {...register("bio")}
           />
 
           {isSelf ? (
@@ -123,18 +126,20 @@ export default function MemberProfileModal({
                 type="file"
                 accept="application/pdf"
                 className="hidden"
+                disabled={saving}
                 onChange={onPdfChange}
               />
               <button
                 type="button"
                 className="absolute -right-2.5 top-1/2 -translate-y-1/2 cursor-pointer rounded-full border border-black/25 bg-white/35 px-1.5 py-0.5 text-[0.55rem] uppercase tracking-[0.18em] text-black/55 opacity-45 shadow-none transition-all duration-250 ease-in-out hover:bg-white/65 hover:opacity-100"
                 onClick={() => pdfInputRef.current?.click()}
+                disabled={saving}
               >
                 PDF
               </button>
             </>
           ) : null}
-        </section>
+        </div>
 
         <section>
           <div className="w-full max-md:portrait:max-h-[26vh] max-md:portrait:overflow-y-auto">
@@ -167,9 +172,10 @@ export default function MemberProfileModal({
               type="button"
               className="cursor-pointer justify-center rounded-full border-0 bg-[radial-gradient(circle,#8a7f6d,#6f6456)] px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] text-white shadow-none transition-all duration-250 ease-in-out hover:scale-105 hover:shadow-[0_0_14px_rgba(140,120,80,0.45)] max-md:inline-flex max-md:max-w-[280px] max-md:w-full"
               fullWidth
-              onClick={onSaveProfile}
+              disabled={saving}
+              onClick={saveProfile}
             >
-              Save Profile
+              {savePending ? "Saving…" : "Save Profile"}
             </Button>
           </footer>
         ) : null}

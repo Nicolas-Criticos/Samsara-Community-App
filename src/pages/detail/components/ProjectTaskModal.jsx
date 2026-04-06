@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import {
   Button,
   Modal,
@@ -36,53 +37,61 @@ export default function ProjectTaskModal({
   onSave,
 }) {
   const isEdit = Boolean(task);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [status, setStatus] = useState(DEFAULT_PROJECT_TASK_STATUS);
   const [file, setFile] = useState(null);
   const [removeImage, setRemoveImage] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const { register, handleSubmit, reset } = useForm({
+    defaultValues: {
+      name: "",
+      description: "",
+      startDate: "",
+      endDate: "",
+      status: DEFAULT_PROJECT_TASK_STATUS,
+    },
+  });
+
   useEffect(() => {
     if (!open) {
-      setName("");
-      setDescription("");
-      setStartDate("");
-      setEndDate("");
-      setStatus(DEFAULT_PROJECT_TASK_STATUS);
+      reset({
+        name: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        status: DEFAULT_PROJECT_TASK_STATUS,
+      });
       setFile(null);
       setRemoveImage(false);
       setSaving(false);
       return;
     }
     if (task) {
-      setName(task.name || "");
-      setDescription(task.description || "");
-      setStartDate(dateInputValue(task.start_date));
-      setEndDate(dateInputValue(task.end_date));
-      setStatus(
-        PROJECT_TASK_STATUSES.includes(task.status)
+      reset({
+        name: task.name || "",
+        description: task.description || "",
+        startDate: dateInputValue(task.start_date),
+        endDate: dateInputValue(task.end_date),
+        status: PROJECT_TASK_STATUSES.includes(task.status)
           ? task.status
-          : DEFAULT_PROJECT_TASK_STATUS
-      );
+          : DEFAULT_PROJECT_TASK_STATUS,
+      });
       setFile(null);
       setRemoveImage(false);
     } else {
-      setName("");
-      setDescription("");
-      setStartDate("");
-      setEndDate("");
-      setStatus(DEFAULT_PROJECT_TASK_STATUS);
+      reset({
+        name: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        status: DEFAULT_PROJECT_TASK_STATUS,
+      });
       setFile(null);
       setRemoveImage(false);
     }
-  }, [open, task]);
+  }, [open, task, reset]);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const n = name.trim();
+  async function onSubmit(values) {
+    const n = values.name.trim();
     if (!n) {
       alert("Task name is required.");
       return;
@@ -90,10 +99,10 @@ export default function ProjectTaskModal({
     setSaving(true);
     const { error } = await onSave({
       name: n,
-      description: description.trim(),
-      start_date: startDate.trim() || null,
-      end_date: endDate.trim() || null,
-      status,
+      description: values.description.trim(),
+      start_date: values.startDate.trim() || null,
+      end_date: values.endDate.trim() || null,
+      status: values.status,
       file,
       removeImage: isEdit ? removeImage : false,
     });
@@ -140,7 +149,7 @@ export default function ProjectTaskModal({
           ? "Update details, schedule, status, or image."
           : "Add a checklist item for this project."}
       </p>
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
         <TextInput
           className={
             isVrisch
@@ -148,9 +157,9 @@ export default function ProjectTaskModal({
               : "w-full rounded-[10px] border-0 bg-white/90 px-3 py-2.5 text-[#2b2b2b]"
           }
           placeholder="Task name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
           autoComplete="off"
+          disabled={saving}
+          {...register("name", { required: true })}
         />
         <TextArea
           className={
@@ -159,8 +168,8 @@ export default function ProjectTaskModal({
               : "min-h-[72px] w-full resize-none rounded-[10px] border-0 bg-white/90 px-3 py-2.5 text-[#2b2b2b]"
           }
           placeholder="Description (optional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          disabled={saving}
+          {...register("description")}
         />
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -179,8 +188,8 @@ export default function ProjectTaskModal({
               id="task-start-date"
               type="date"
               className={dateFieldClass}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              disabled={saving}
+              {...register("startDate")}
             />
           </div>
           <div>
@@ -198,8 +207,8 @@ export default function ProjectTaskModal({
               id="task-end-date"
               type="date"
               className={dateFieldClass}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              disabled={saving}
+              {...register("endDate")}
             />
           </div>
         </div>
@@ -218,8 +227,8 @@ export default function ProjectTaskModal({
           <select
             id="task-status"
             className={selectClass}
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            disabled={saving}
+            {...register("status")}
           >
             {PROJECT_TASK_STATUSES.map((s) => (
               <option key={s} value={s}>

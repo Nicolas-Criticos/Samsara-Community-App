@@ -120,20 +120,7 @@ export default function ProjectsPage() {
       <ProjectCreateModal
         isVrisch={pf.isVrisch}
         open={pf.createOpen}
-        title={pf.createTitle}
-        setTitle={pf.setCreateTitle}
-        description={pf.createDescription}
-        setDescription={pf.setCreateDescription}
-        timeline={pf.createTimeline}
-        setTimeline={pf.setCreateTimeline}
-        status={pf.createStatus}
-        setStatus={pf.setCreateStatus}
-        cny={pf.createCny}
-        setCny={pf.setCreateCny}
-        inspiration={pf.createInspiration}
-        setInspiration={pf.setCreateInspiration}
-        imageFileRef={pf.createImageFileRef}
-        onSubmit={pf.submitProject}
+        createProjectMutation={pf.createProjectMutation}
         onCancel={() => pf.setCreateOpen(false)}
       />
     </div>

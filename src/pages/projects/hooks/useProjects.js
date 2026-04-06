@@ -1,10 +1,17 @@
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "../../../lib/supabase.js";
+import { useAuthSession } from "../../../hooks/useAuthSession.js";
 import {
   createParticleField,
   randomProjectNodePosition,
 } from "../../../lib/portalLayout.js";
+import { queryKeys } from "../../../lib/queryKeys.js";
+import { supabase } from "../../../lib/supabase.js";
 import { fetchMemberUsernameByUserId } from "../../../lib/membersApi.js";
 import {
   addProjectContributor,
@@ -26,41 +33,60 @@ import {
   emptyPrimaryConfig,
 } from "../lib/primaryActions.js";
 
+async function fetchModalExtrasFull(realm, projectId, userId, createdBy) {
+  const [{ data: creator }, line, { data: contribRow }] = await Promise.all([
+    fetchMemberUsernameByUserId(createdBy),
+    formatContributorsLine(projectId, realm),
+    findExistingContributor(projectId, userId, realm),
+  ]);
+
+  let applicationBanner = null;
+  let showEndProject = false;
+  if (createdBy === userId) {
+    showEndProject = true;
+    const { data: apps, error } = await fetchPendingApplications(
+      projectId,
+      realm
+    );
+    if (!error && apps?.length) {
+      const nameMap = await fetchApplicantNameMap(
+        apps.map((a) => a.applicant_id)
+      );
+      applicationBanner = { apps, nameMap, projectId };
+    }
+  }
+
+  return {
+    detailCreator: `Created by ${creator?.username || "Unknown"}`,
+    detailContributors: line,
+    isDetailContributor: Boolean(contribRow),
+    applicationBanner,
+    showEndProject,
+  };
+}
+
 export function useProjects() {
   const { realm: realmParam } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const loadTimeoutsRef = useRef([]);
 
   const realm =
     realmParam === "vrischgewagt" ? "vrischgewagt" : "samsara";
   const isVrisch = realm === "vrischgewagt";
 
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const [ready, setReady] = useState(false);
-  const [projects, setProjects] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(0);
-  const [positions, setPositions] = useState([]);
+  const { data: session, isPending: sessionPending } = useAuthSession();
+  const currentUserId = session?.user?.id ?? null;
 
   const [detailProject, setDetailProject] = useState(null);
-  const [detailCreator, setDetailCreator] = useState("");
-  const [detailContributors, setDetailContributors] = useState("");
   const [detailRoles, setDetailRoles] = useState("");
   const [primaryConfig, setPrimaryConfig] = useState(() =>
     emptyPrimaryConfig(isVrisch)
   );
-  const createImageFileRef = useRef(null);
   const [inspirationLink, setInspirationLink] = useState(null);
-  const [applicationBanner, setApplicationBanner] = useState(null);
-  const [showEndProject, setShowEndProject] = useState(false);
-  const [isDetailContributor, setIsDetailContributor] = useState(false);
-
   const [createOpen, setCreateOpen] = useState(false);
-  const [createTitle, setCreateTitle] = useState("");
-  const [createDescription, setCreateDescription] = useState("");
-  const [createTimeline, setCreateTimeline] = useState("");
-  const [createStatus, setCreateStatus] = useState("open");
-  const [createCny, setCreateCny] = useState(false);
-  const [createInspiration, setCreateInspiration] = useState("");
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [positions, setPositions] = useState([]);
 
   useEffect(() => {
     document.body.dataset.realm = realm;
@@ -69,72 +95,94 @@ export function useProjects() {
     };
   }, [realm]);
 
-  const loadProjectList = useCallback(async () => {
-    if (!currentUserId) return null;
-    return fetchEnrichedProjects(realm, currentUserId);
-  }, [realm, currentUserId]);
+  useEffect(() => {
+    if (!sessionPending && !session) {
+      navigate("/", { replace: true });
+    }
+  }, [sessionPending, session, navigate]);
 
-  const refetchProjects = useCallback(async () => {
-    const enriched = await loadProjectList();
-    if (!enriched) return;
-    setProjects(enriched);
-    setPositions(enriched.map(() => randomProjectNodePosition()));
-    setVisibleCount(enriched.length);
-  }, [loadProjectList]);
+  const projectsQuery = useQuery({
+    queryKey: queryKeys.projectsList(realm, currentUserId ?? ""),
+    queryFn: () => fetchEnrichedProjects(realm, currentUserId),
+    enabled: Boolean(currentUserId),
+  });
+
+  const projects = projectsQuery.data ?? [];
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/", { replace: true });
-        return;
-      }
-      setCurrentUserId(session.user.id);
-      setReady(true);
-    });
-  }, [navigate]);
-
-  useEffect(() => {
-    if (!ready || !currentUserId) return undefined;
+    if (!currentUserId || !projectsQuery.isSuccess) return undefined;
+    const enriched = projectsQuery.data;
+    if (!enriched) return undefined;
     let cancelled = false;
     loadTimeoutsRef.current.forEach(clearTimeout);
     loadTimeoutsRef.current = [];
 
-    (async () => {
-      const enriched = await loadProjectList();
-      if (!enriched || cancelled) return;
-      setProjects(enriched);
-      setPositions(enriched.map(() => randomProjectNodePosition()));
-      setVisibleCount(0);
-      enriched.forEach((_, i) => {
-        const id = setTimeout(() => {
-          if (!cancelled) {
-            setVisibleCount((c) => Math.max(c, i + 1));
-          }
-        }, i * 700);
-        loadTimeoutsRef.current.push(id);
-      });
-    })();
+    setPositions(enriched.map(() => randomProjectNodePosition()));
+    setVisibleCount(0);
+    enriched.forEach((_, i) => {
+      const id = setTimeout(() => {
+        if (!cancelled) {
+          setVisibleCount((c) => Math.max(c, i + 1));
+        }
+      }, i * 700);
+      loadTimeoutsRef.current.push(id);
+    });
 
     return () => {
       cancelled = true;
       loadTimeoutsRef.current.forEach(clearTimeout);
       loadTimeoutsRef.current = [];
     };
-  }, [ready, currentUserId, loadProjectList]);
+  }, [currentUserId, projectsQuery.isSuccess, projectsQuery.data]);
 
-  const refreshContributorsLine = useCallback(
-    async (projectId) => {
-      const line = await formatContributorsLine(projectId, realm);
-      setDetailContributors(line);
-    },
-    [realm]
-  );
+  const modalExtrasQuery = useQuery({
+    queryKey: [
+      ...queryKeys.projectsFieldModalExtras(
+        realm,
+        detailProject?.id ?? "",
+        currentUserId ?? ""
+      ),
+      detailProject?.created_by ?? "",
+    ],
+    queryFn: () =>
+      fetchModalExtrasFull(
+        realm,
+        detailProject.id,
+        currentUserId,
+        detailProject.created_by
+      ),
+    enabled: Boolean(detailProject?.id && currentUserId),
+  });
+
+  const detailCreator = modalExtrasQuery.data?.detailCreator ?? "";
+  const detailContributors = modalExtrasQuery.data?.detailContributors ?? "";
+  const applicationBanner = modalExtrasQuery.data?.applicationBanner ?? null;
+  const isDetailContributor =
+    modalExtrasQuery.data?.isDetailContributor ?? false;
+  const showEndProject = modalExtrasQuery.data?.showEndProject ?? false;
+
+  const invalidateProjectsList = useCallback(() => {
+    if (currentUserId) {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projectsList(realm, currentUserId),
+      });
+    }
+  }, [queryClient, realm, currentUserId]);
+
+  const invalidateModalExtras = useCallback(() => {
+    if (detailProject?.id && currentUserId) {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projectsFieldModalExtras(
+          realm,
+          detailProject.id,
+          currentUserId
+        ),
+      });
+    }
+  }, [queryClient, realm, detailProject?.id, currentUserId]);
 
   const resetDetailUi = useCallback(() => {
     setInspirationLink(null);
-    setApplicationBanner(null);
-    setShowEndProject(false);
-    setIsDetailContributor(false);
     setPrimaryConfig(emptyPrimaryConfig(isVrisch));
   }, [isVrisch]);
 
@@ -157,10 +205,9 @@ export function useProjects() {
         realm,
       });
 
-      await refreshContributorsLine(project.id);
-      setIsDetailContributor(true);
+      invalidateModalExtras();
     },
-    [realm, currentUserId, refreshContributorsLine]
+    [realm, currentUserId, invalidateModalExtras]
   );
 
   const leaveProjectFromField = useCallback(
@@ -181,10 +228,9 @@ export function useProjects() {
         alert(error.message);
         return;
       }
-      setIsDetailContributor(false);
-      await refreshContributorsLine(proj.id);
+      invalidateModalExtras();
     },
-    [realm, currentUserId, refreshContributorsLine]
+    [realm, currentUserId, invalidateModalExtras]
   );
 
   const applyToProject = useCallback(
@@ -233,25 +279,6 @@ export function useProjects() {
     applyPrimaryForProjectStable(detailProject);
   }, [detailProject, currentUserId, applyPrimaryForProjectStable]);
 
-  const loadApplications = useCallback(
-    async (projectId) => {
-      const { data: apps, error } = await fetchPendingApplications(
-        projectId,
-        realm
-      );
-
-      if (error || !apps?.length) {
-        setApplicationBanner(null);
-        return;
-      }
-
-      const userIds = apps.map((a) => a.applicant_id);
-      const nameMap = await fetchApplicantNameMap(userIds);
-      setApplicationBanner({ apps, nameMap, projectId });
-    },
-    [realm]
-  );
-
   const handleApplications = useCallback(
     async (apps, nameMap, projectId) => {
       for (const app of apps) {
@@ -272,68 +299,47 @@ export function useProjects() {
         }
       }
 
-      await refreshContributorsLine(projectId);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.projectsFieldModalExtras(
+          realm,
+          projectId,
+          currentUserId
+        ),
+      });
       alert("Applications processed.");
-      setApplicationBanner(null);
     },
-    [realm, refreshContributorsLine]
+    [realm, currentUserId, queryClient]
   );
 
   const openProjectDetail = useCallback(
-    async (project) => {
+    (project) => {
       resetDetailUi();
       setDetailProject(project);
       setDetailRoles(
         project.roles_needed ? `Needed: ${project.roles_needed}` : ""
       );
-
-      const { data: creator } = await fetchMemberUsernameByUserId(
-        project.created_by
-      );
-
-      setDetailCreator(`Created by ${creator?.username || "Unknown"}`);
-      await refreshContributorsLine(project.id);
-
-      const { data: contribRow } = await findExistingContributor(
-        project.id,
-        currentUserId,
-        realm
-      );
-      setIsDetailContributor(Boolean(contribRow));
-
-      if (project.created_by === currentUserId) {
-        setShowEndProject(true);
-        await loadApplications(project.id);
-      }
-
       if (project.inspiration_link) {
         setInspirationLink(project.inspiration_link);
       }
     },
-    [
-      currentUserId,
-      realm,
-      resetDetailUi,
-      refreshContributorsLine,
-      loadApplications,
-    ]
+    [resetDetailUi]
   );
 
-  const onStatusChange = useCallback(
-    async (newStatus, project) => {
+  const onStatusChange = useMutation({
+    mutationFn: async ({ newStatus, project }) => {
       await updateProjectStatus(
         project.id,
         realm,
         currentUserId,
         newStatus
       );
-
+    },
+    onSuccess: (_d, { newStatus, project }) => {
       setDetailProject((p) => (p ? { ...p, status: newStatus } : p));
-      await refetchProjects();
+      invalidateProjectsList();
       applyPrimaryForProjectStable({ ...project, status: newStatus });
     },
-    [realm, currentUserId, refetchProjects, applyPrimaryForProjectStable]
-  );
+  });
 
   const closeProjectDetail = useCallback(() => {
     setDetailProject(null);
@@ -341,100 +347,115 @@ export function useProjects() {
     resetDetailUi();
   }, [resetDetailUi]);
 
-  const endProject = useCallback(
-    async (project) => {
-      if (!confirm("This will end the project permanently.")) return;
-
+  const endProject = useMutation({
+    mutationFn: async (project) => {
       await archiveProject(project.id, realm, currentUserId);
-      closeProjectDetail();
-      await refetchProjects();
     },
-    [realm, currentUserId, refetchProjects, closeProjectDetail]
-  );
+    onSuccess: () => {
+      closeProjectDetail();
+      invalidateProjectsList();
+    },
+  });
 
-  const submitProject = useCallback(async () => {
-    const title = createTitle.trim();
-    const description = createDescription.trim();
-    const timeline = createTimeline.trim();
-    const inspirationLinkVal = isVrisch
-      ? null
-      : createInspiration.trim() || null;
+  const createProjectMutation = useMutation({
+    mutationFn: async ({
+      title: rawTitle,
+      description: rawDescription,
+      timeline: rawTimeline,
+      status,
+      cny,
+      inspiration,
+      imageFile,
+    }) => {
+      const title = rawTitle.trim();
+      const description = rawDescription.trim();
+      const timeline = rawTimeline.trim();
 
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      const {
+        data: { session: s },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-    if (!session || sessionError) {
-      alert("Session expired. Please refresh and log in again.");
-      return;
-    }
+      if (!s || sessionError) {
+        throw new Error("SESSION");
+      }
 
-    if (!title || !description) {
-      alert("Project requires a name and description.");
-      return;
-    }
+      if (!title || !description) {
+        throw new Error("VALIDATION");
+      }
 
-    let image_url = null;
-    const imageInput = createImageFileRef.current;
+      const inspirationLinkVal = isVrisch ? null : inspiration?.trim() || null;
 
-    if (imageInput?.files?.length > 0) {
-      const file = imageInput.files[0];
-      const { error: uploadError, url } = await uploadProjectImageFile(file);
-      if (uploadError) {
-        console.error("Image upload failed:", uploadError);
+      let image_url = null;
+      if (imageFile) {
+        const { error: uploadError, url } = await uploadProjectImageFile(
+          imageFile
+        );
+        if (uploadError) {
+          throw new Error("UPLOAD");
+        }
+        image_url = url;
+      }
+
+      const { error } = await insertProjectRow({
+        title,
+        description,
+        timeline,
+        status,
+        created_by: currentUserId,
+        realm,
+        archived: false,
+        chinese_new_year: isVrisch ? false : Boolean(cny),
+        image_url,
+        inspiration_link: inspirationLinkVal,
+      });
+
+      if (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      setCreateOpen(false);
+      invalidateProjectsList();
+    },
+    onError: (err) => {
+      if (err?.message === "SESSION") {
+        alert("Session expired. Please refresh and log in again.");
+        return;
+      }
+      if (err?.message === "VALIDATION") {
+        alert("Project requires a name and description.");
+        return;
+      }
+      if (err?.message === "UPLOAD") {
+        console.error("Image upload failed");
         alert("Image upload failed.");
         return;
       }
-      image_url = url;
-    }
-
-    const { error } = await insertProjectRow({
-      title,
-      description,
-      timeline,
-      status: createStatus,
-      created_by: currentUserId,
-      realm,
-      archived: false,
-      chinese_new_year: isVrisch ? false : createCny,
-      image_url,
-      inspiration_link: inspirationLinkVal,
-    });
-
-    if (error) {
-      console.error("Project insert failed:", error);
+      console.error("Project insert failed:", err);
       alert("Failed to create project.");
-      return;
-    }
-
-    setCreateOpen(false);
-    setCreateTitle("");
-    setCreateDescription("");
-    setCreateTimeline("");
-    setCreateStatus("open");
-    setCreateCny(false);
-    setCreateInspiration("");
-    if (imageInput) imageInput.value = "";
-
-    await refetchProjects();
-  }, [
-    createTitle,
-    createDescription,
-    createTimeline,
-    createStatus,
-    createCny,
-    createInspiration,
-    isVrisch,
-    currentUserId,
-    realm,
-    refetchProjects,
-  ]);
+    },
+  });
 
   const particles = useMemo(() => createParticleField(60), [realm]);
 
   const isDetailCreator =
     detailProject && detailProject.created_by === currentUserId;
+
+  const handleEndProject = useCallback(
+    (project) => {
+      if (!confirm("This will end the project permanently.")) return;
+      endProject.mutate(project);
+    },
+    [endProject]
+  );
+
+  const handleStatusChange = useCallback(
+    (newStatus, project) => {
+      onStatusChange.mutate({ newStatus, project });
+    },
+    [onStatusChange]
+  );
 
   return {
     realm,
@@ -456,24 +477,11 @@ export function useProjects() {
     currentUserId,
     createOpen,
     setCreateOpen,
-    createTitle,
-    setCreateTitle,
-    createDescription,
-    setCreateDescription,
-    createTimeline,
-    setCreateTimeline,
-    createStatus,
-    setCreateStatus,
-    createCny,
-    setCreateCny,
-    createInspiration,
-    setCreateInspiration,
     openProjectDetail,
     closeProjectDetail,
-    onStatusChange,
-    endProject,
+    onStatusChange: handleStatusChange,
+    endProject: handleEndProject,
     handleApplications,
-    submitProject,
-    createImageFileRef,
+    createProjectMutation,
   };
 }

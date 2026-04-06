@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
 import { Button, TextArea, TextInput } from "../../../components/ui/index.js";
 
 /**
@@ -13,32 +14,39 @@ export default function ProjectEditModal({
   onSave,
 }) {
   const imageFileRef = useRef(null);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [timeline, setTimeline] = useState("");
-  const [status, setStatus] = useState("open");
-  const [cny, setCny] = useState(false);
-  const [inspiration, setInspiration] = useState("");
-  const [rolesNeeded, setRolesNeeded] = useState("");
-  const [saving, setSaving] = useState(false);
+  const { register, handleSubmit, reset } = useForm({
+    defaultValues: {
+      title: "",
+      description: "",
+      timeline: "",
+      status: "open",
+      cny: false,
+      inspiration: "",
+      rolesNeeded: "",
+    },
+  });
 
   useEffect(() => {
     if (!open || !project) return;
-    setTitle(project.title || "");
-    setDescription(project.description || "");
-    setTimeline(project.timeline || "");
-    setStatus(project.status || "open");
-    setCny(Boolean(project.chinese_new_year));
-    setInspiration(project.inspiration_link || "");
-    setRolesNeeded(project.roles_needed || "");
+    reset({
+      title: project.title || "",
+      description: project.description || "",
+      timeline: project.timeline || "",
+      status: project.status || "open",
+      cny: Boolean(project.chinese_new_year),
+      inspiration: project.inspiration_link || "",
+      rolesNeeded: project.roles_needed || "",
+    });
     if (imageFileRef.current) imageFileRef.current.value = "";
-  }, [open, project]);
+  }, [open, project, reset]);
+
+  const [saving, setSaving] = useState(false);
 
   if (!open || !project) return null;
 
-  async function handleSubmit() {
-    const t = title.trim();
-    const d = description.trim();
+  async function onSubmit(values) {
+    const t = values.title.trim();
+    const d = values.description.trim();
     if (!t || !d) {
       alert("Title and description are required.");
       return;
@@ -51,12 +59,12 @@ export default function ProjectEditModal({
     const { error } = await onSave({
       title: t,
       description: d,
-      timeline: timeline.trim(),
-      status: isCreator ? status : project.status,
+      timeline: values.timeline.trim(),
+      status: isCreator ? values.status : project.status,
       imageFile: file,
-      inspiration_link: inspiration.trim(),
-      chinese_new_year: cny,
-      roles_needed: rolesNeeded.trim(),
+      inspiration_link: values.inspiration.trim(),
+      chinese_new_year: values.cny,
+      roles_needed: values.rolesNeeded.trim(),
     });
     setSaving(false);
     if (error) {
@@ -97,8 +105,8 @@ export default function ProjectEditModal({
           }`}
           placeholder={isVrisch ? "Project name" : "Name of offering"}
           autoComplete="off"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          disabled={saving}
+          {...register("title", { required: true })}
         />
 
         <TextArea
@@ -108,8 +116,8 @@ export default function ProjectEditModal({
               : "border-0 bg-white/90 text-[#2b2b2b]"
           }`}
           placeholder={isVrisch ? "Project description" : "Description"}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          disabled={saving}
+          {...register("description", { required: true })}
         />
 
         <TextArea
@@ -119,8 +127,8 @@ export default function ProjectEditModal({
               : "border-0 bg-white/90 text-[#2b2b2b]"
           }`}
           placeholder={isVrisch ? "Timeline / rhythm" : "Timespan / rhythm"}
-          value={timeline}
-          onChange={(e) => setTimeline(e.target.value)}
+          disabled={saving}
+          {...register("timeline")}
         />
 
         <TextInput
@@ -131,8 +139,8 @@ export default function ProjectEditModal({
           }`}
           placeholder="Roles needed (optional)"
           autoComplete="off"
-          value={rolesNeeded}
-          onChange={(e) => setRolesNeeded(e.target.value)}
+          disabled={saving}
+          {...register("rolesNeeded")}
         />
 
         <div className="text-left">
@@ -154,6 +162,7 @@ export default function ProjectEditModal({
                 : "text-[rgba(43,43,43,0.7)]"
             }`}
             accept="image/*"
+            disabled={saving}
           />
           <p
             className={`mt-1 text-[0.65rem] ${
@@ -178,27 +187,27 @@ export default function ProjectEditModal({
             <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="radio"
-                name="editProjectStatus"
-                checked={status === "open"}
-                onChange={() => setStatus("open")}
+                value="open"
+                disabled={saving}
+                {...register("status")}
               />
               🟢 Open contribution
             </label>
             <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="radio"
-                name="editProjectStatus"
-                checked={status === "application"}
-                onChange={() => setStatus("application")}
+                value="application"
+                disabled={saving}
+                {...register("status")}
               />
               🟠 By application
             </label>
             <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="radio"
-                name="editProjectStatus"
-                checked={status === "closed"}
-                onChange={() => setStatus("closed")}
+                value="closed"
+                disabled={saving}
+                {...register("status")}
               />
               🔴 Closed
             </label>
@@ -211,8 +220,8 @@ export default function ProjectEditModal({
               <input
                 type="checkbox"
                 className="mr-0.5"
-                checked={cny}
-                onChange={(e) => setCny(e.target.checked)}
+                disabled={saving}
+                {...register("cny")}
               />
               🧧 Chinese New Year
             </label>
@@ -229,8 +238,8 @@ export default function ProjectEditModal({
                 name="edit_inspiration_link"
                 className="mt-1 h-8 w-full rounded-md border border-dashed border-[rgba(143,139,106,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-1 text-[13px] text-[#2b2a2a] placeholder:text-[rgba(5,4,4,0.35)] focus:border-solid focus:border-[rgba(143,139,106,0.6)] focus:opacity-100 focus:outline-none"
                 placeholder="Pinterest, Figma, Drive…"
-                value={inspiration}
-                onChange={(e) => setInspiration(e.target.value)}
+                disabled={saving}
+                {...register("inspiration")}
               />
             </div>
           </>
@@ -246,7 +255,7 @@ export default function ProjectEditModal({
                 : "bg-[radial-gradient(circle,#8a7f6d,#6f6456)]"
             }`}
             fullWidth
-            onClick={handleSubmit}
+            onClick={handleSubmit(onSubmit)}
           >
             {saving ? "Saving…" : "Save changes"}
           </Button>

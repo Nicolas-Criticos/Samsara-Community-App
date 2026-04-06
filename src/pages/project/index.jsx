@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import {
   Button,
@@ -114,6 +115,7 @@ export default function ProjectDetailPage() {
     updates,
     loadError,
     ready,
+    isProjectLoading,
     isCreator,
     showContributorAddUpdate,
     canManageTasks,
@@ -121,6 +123,8 @@ export default function ProjectDetailPage() {
     navigate,
     addTask,
     addUpdate,
+    creatorUpdatePending,
+    submitCreatorUpdate,
     updateTask,
     detailCreator,
     detailContributors,
@@ -134,10 +138,15 @@ export default function ProjectDetailPage() {
     handleApplications,
   } = useProjectDetailPage();
 
-  const [updTitle, setUpdTitle] = useState("");
-  const [updDesc, setUpdDesc] = useState("");
   const [updFile, setUpdFile] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const creatorUpdateForm = useForm({
+    defaultValues: { title: "", description: "" },
+  });
+  const {
+    register: regCreatorUpdate,
+    handleSubmit: handleCreatorUpdateSubmit,
+    reset: resetCreatorUpdate,
+  } = creatorUpdateForm;
   const [addUpdateOpen, setAddUpdateOpen] = useState(false);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
@@ -198,30 +207,26 @@ export default function ProjectDetailPage() {
     ? "text-[rgba(200,195,185,0.72)]"
     : "text-[rgba(60,55,45,0.65)]";
 
-  async function submitUpdate(e) {
-    e.preventDefault();
-    const title = updTitle.trim();
+  const submitUpdate = handleCreatorUpdateSubmit((values) => {
+    const title = values.title.trim();
     if (!title) {
       alert("Update title is required.");
       return;
     }
-    setSaving(true);
-    const { error } = await addUpdate({
+    submitCreatorUpdate({
       title,
-      description: updDesc.trim(),
+      description: values.description.trim(),
       file: updFile,
+    }, {
+      onSuccess: () => {
+        resetCreatorUpdate({ title: "", description: "" });
+        setUpdFile(null);
+      },
+      onError: (message) => alert(message),
     });
-    setSaving(false);
-    if (error) {
-      alert(error);
-      return;
-    }
-    setUpdTitle("");
-    setUpdDesc("");
-    setUpdFile(null);
-  }
+  });
 
-  if (!ready) {
+  if (!ready || isProjectLoading) {
     return (
       <div
         className={`flex min-h-screen items-center justify-center ${pageBg}`}
@@ -462,7 +467,7 @@ export default function ProjectDetailPage() {
           onClose={closeTaskModal}
           isVrisch={isVrisch}
           task={editingTask}
-          onSave={async (payload) =>
+          onSave={(payload) =>
             editingTask ? updateTask(editingTask.id, payload) : addTask(payload)
           }
         />
@@ -670,8 +675,8 @@ export default function ProjectDetailPage() {
                     : "w-full rounded-[10px] border-0 bg-white/90 px-3 py-2.5"
                 }
                 placeholder="Update title"
-                value={updTitle}
-                onChange={(e) => setUpdTitle(e.target.value)}
+                disabled={creatorUpdatePending}
+                {...regCreatorUpdate("title", { required: true })}
               />
               <TextArea
                 className={
@@ -680,19 +685,19 @@ export default function ProjectDetailPage() {
                     : "min-h-[72px] w-full resize-none rounded-[10px] border-0 bg-white/90 px-3 py-2.5"
                 }
                 placeholder="What changed? (optional)"
-                value={updDesc}
-                onChange={(e) => setUpdDesc(e.target.value)}
+                disabled={creatorUpdatePending}
+                {...regCreatorUpdate("description")}
               />
               <ImageDropzone
                 label="Image (optional)"
                 file={updFile}
                 onChange={setUpdFile}
                 isVrisch={isVrisch}
-                disabled={saving}
+                disabled={creatorUpdatePending}
               />
               <Button
                 type="submit"
-                disabled={saving}
+                disabled={creatorUpdatePending}
                 className={
                   isVrisch
                     ? "rounded-full bg-[radial-gradient(circle,#5a6b4a,#3d4a32)] px-5 py-2 text-[0.65rem] uppercase tracking-[0.16em] text-white"

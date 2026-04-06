@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import {
   Button,
   Modal,
@@ -16,23 +17,22 @@ export default function ProjectAddUpdateModal({
   isVrisch,
   onSave,
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const { register, handleSubmit, reset } = useForm({
+    defaultValues: { title: "", description: "" },
+  });
 
   useEffect(() => {
     if (!open) {
-      setTitle("");
-      setDescription("");
+      reset({ title: "", description: "" });
       setFile(null);
       setSaving(false);
     }
-  }, [open]);
+  }, [open, reset]);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const t = title.trim();
+  async function onSubmit(values) {
+    const t = values.title.trim();
     if (!t) {
       alert("Title is required.");
       return;
@@ -40,7 +40,7 @@ export default function ProjectAddUpdateModal({
     setSaving(true);
     const { error } = await onSave({
       title: t,
-      description: description.trim(),
+      description: values.description.trim(),
       file,
     });
     setSaving(false);
@@ -74,7 +74,7 @@ export default function ProjectAddUpdateModal({
       >
         Share progress with everyone following this project.
       </p>
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
         <TextInput
           className={
             isVrisch
@@ -82,9 +82,9 @@ export default function ProjectAddUpdateModal({
               : "w-full rounded-[10px] border-0 bg-white/90 px-3 py-2.5 text-[#2b2b2b]"
           }
           placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
           autoComplete="off"
+          disabled={saving}
+          {...register("title", { required: true })}
         />
         <TextArea
           className={
@@ -93,8 +93,8 @@ export default function ProjectAddUpdateModal({
               : "min-h-[88px] w-full resize-none rounded-[10px] border-0 bg-white/90 px-3 py-2.5 text-[#2b2b2b]"
           }
           placeholder="Description (optional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          disabled={saving}
+          {...register("description")}
         />
         <ImageDropzone
           label="Image (optional)"

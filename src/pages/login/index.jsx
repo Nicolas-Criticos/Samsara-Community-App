@@ -3,98 +3,146 @@ import { useLoginForm } from "./hooks/useLoginForm.js";
 
 export default function LoginPage() {
   const f = useLoginForm();
+  const {
+    register: regLogin,
+    formState: { errors: loginErrors },
+  } = f.loginForm;
+  const {
+    register: regSignup,
+    formState: { errors: signupErrors },
+  } = f.signupForm;
 
   return (
     <div className="fixed inset-0 z-999 flex items-center justify-center bg-[#f6f3ee]">
       <div className="w-80 rounded-[18px] bg-white/70 px-12 py-12 text-center backdrop-blur-sm">
         <h2>{f.mode === "login" ? "Login" : "Rite of Entry"}</h2>
 
-        <TextInput
-          type="email"
-          className="mb-2 mt-2 w-full rounded-[10px] border-0 px-3 py-3"
-          placeholder="Email"
-          value={f.email}
-          onChange={(ev) => f.setEmail(ev.target.value)}
-        />
-
         {f.mode === "login" ? (
-          <div id="loginStage">
+          <form id="loginStage" className="contents" onSubmit={f.loginSubmit}>
+            <TextInput
+              type="email"
+              className="mb-2 mt-2 w-full rounded-[10px] border-0 px-3 py-3"
+              placeholder="Email"
+              autoComplete="email"
+              disabled={f.loginPending}
+              {...regLogin("email", { required: "Email is required" })}
+            />
+            {loginErrors.email ? (
+              <p className="text-left text-[0.8rem] text-amber-900">
+                {loginErrors.email.message}
+              </p>
+            ) : null}
             <TextInput
               type="password"
               className="mb-2 mt-2 w-full rounded-[10px] border-0 px-3 py-3"
               placeholder="Password"
-              value={f.password}
-              onChange={(ev) => f.setPassword(ev.target.value)}
+              autoComplete="current-password"
+              disabled={f.loginPending}
+              {...regLogin("password", { required: "Password is required" })}
             />
+            {loginErrors.password ? (
+              <p className="text-left text-[0.8rem] text-amber-900">
+                {loginErrors.password.message}
+              </p>
+            ) : null}
             <Button
-              type="button"
+              type="submit"
               className="mt-3 w-full rounded-xl py-3"
               fullWidth
-              onClick={f.login}
+              disabled={f.loginPending}
             >
-              Login
+              {f.loginPending ? "…" : "Login"}
             </Button>
             <p>
               <Button
                 type="button"
                 variant="link"
-                onClick={() => {
-                  f.setMode("signup");
-                  f.setAuthError("");
-                }}
+                onClick={f.switchToSignup}
               >
                 No account? Sign up
               </Button>
             </p>
-          </div>
+          </form>
         ) : (
-          <div id="signupStage">
+          <form
+            id="signupStage"
+            className="contents"
+            onSubmit={f.signupSubmit}
+          >
+            <TextInput
+              type="email"
+              className="mb-2 mt-2 w-full rounded-[10px] border-0 px-3 py-3"
+              placeholder="Email"
+              autoComplete="email"
+              disabled={f.signupPending}
+              {...regSignup("email", { required: "Email is required" })}
+            />
+            {signupErrors.email ? (
+              <p className="text-left text-[0.8rem] text-amber-900">
+                {signupErrors.email.message}
+              </p>
+            ) : null}
             <TextInput
               className="mb-2 mt-2 w-full rounded-[10px] border-0 px-3 py-3"
               placeholder="Username"
-              value={f.username}
-              onChange={(ev) => f.setUsername(ev.target.value)}
+              autoComplete="username"
+              disabled={f.signupPending}
+              {...regSignup("username", { required: "Username is required" })}
             />
+            {signupErrors.username ? (
+              <p className="text-left text-[0.8rem] text-amber-900">
+                {signupErrors.username.message}
+              </p>
+            ) : null}
             <TextInput
               type="password"
               className="mb-2 mt-2 w-full rounded-[10px] border-0 px-3 py-3"
               placeholder="Create password"
-              value={f.passwordSignup}
-              onChange={(ev) => f.setPasswordSignup(ev.target.value)}
+              autoComplete="new-password"
+              disabled={f.signupPending}
+              {...regSignup("passwordSignup", {
+                required: "Password is required",
+              })}
             />
+            {signupErrors.passwordSignup ? (
+              <p className="text-left text-[0.8rem] text-amber-900">
+                {signupErrors.passwordSignup.message}
+              </p>
+            ) : null}
             <TextInput
               type="password"
               className="mb-2 mt-2 w-full rounded-[10px] border-0 px-3 py-3"
               placeholder="Repeat password"
-              value={f.passwordConfirm}
-              onChange={(ev) => f.setPasswordConfirm(ev.target.value)}
+              autoComplete="new-password"
+              disabled={f.signupPending}
+              {...regSignup("passwordConfirm", {
+                required: "Confirm password",
+              })}
             />
+            {signupErrors.passwordConfirm ? (
+              <p className="text-left text-[0.8rem] text-amber-900">
+                {signupErrors.passwordConfirm.message}
+              </p>
+            ) : null}
             <Button
-              type="button"
+              type="submit"
               className="mt-3 w-full rounded-xl py-3"
               fullWidth
-              onClick={f.signup}
+              disabled={f.signupPending}
             >
-              Create account
+              {f.signupPending ? "…" : "Create account"}
             </Button>
             <p>
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => {
-                  f.setMode("login");
-                  f.setAuthError("");
-                }}
-              >
+              <Button type="button" variant="link" onClick={f.switchToLogin}>
                 Back to login
               </Button>
             </p>
-          </div>
+          </form>
         )}
 
-        {f.authError ? (
+        {f.authNotice ? (
           <p className="mt-4 text-[0.9rem] text-amber-900" id="authError">
-            {f.authError}
+            {f.authNotice}
           </p>
         ) : null}
       </div>
