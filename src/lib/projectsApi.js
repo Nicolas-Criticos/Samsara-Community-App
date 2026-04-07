@@ -1,5 +1,8 @@
 import { supabase } from "./supabase.js";
-import { fetchMemberUsernamesByUserIds } from "./membersApi.js";
+import {
+  fetchMemberNamesByUserIds,
+  fetchMemberUsernamesByUserIds,
+} from "./membersApi.js";
 import { slugifyProjectTitle } from "./slug.js";
 
 export async function fetchProjectsInRealm(realm) {
@@ -14,6 +17,7 @@ export async function fetchProjectsInRealm(realm) {
       status,
       roles_needed,
       created_by,
+      created_at,
       chinese_new_year,
       inspiration_link
     `
@@ -42,6 +46,15 @@ export async function fetchEnrichedProjects(realm, currentUserId) {
   }
 
   const list = data || [];
+  const creatorIds = [...new Set(list.map((p) => p.created_by).filter(Boolean))];
+  const { data: creatorRows } = await fetchMemberNamesByUserIds(creatorIds);
+  const creatorNameById = {};
+  (creatorRows || []).forEach((member) => {
+    const label = member.name || member.username || "Unknown";
+    if (member.user_id) creatorNameById[member.user_id] = label;
+    if (member.id) creatorNameById[member.id] = label;
+  });
+
   return Promise.all(
     list.map(async (p) => {
       let appCount = 0;
@@ -49,7 +62,11 @@ export async function fetchEnrichedProjects(realm, currentUserId) {
         const { count } = await countPendingApplications(p.id, realm);
         appCount = count;
       }
-      return { ...p, appCount };
+      return {
+        ...p,
+        appCount,
+        created_by_name: creatorNameById[p.created_by] || p.created_by,
+      };
     })
   );
 }

@@ -110,3 +110,30 @@ export async function fetchMemberUsernamesByUserIds(userIds) {
     .select("user_id, username")
     .in("user_id", userIds);
 }
+
+export async function fetchMemberNamesByUserIds(userIds) {
+  if (!userIds?.length) return { data: [], error: null };
+  const { data: byUserId, error: byUserIdError } = await supabase
+    .from("members")
+    .select("id, user_id, name, username")
+    .in("user_id", userIds);
+
+  const unresolvedIds = userIds.filter(
+    (id) => !(byUserId || []).some((member) => member?.user_id === id)
+  );
+
+  if (!unresolvedIds.length) {
+    return { data: byUserId || [], error: byUserIdError };
+  }
+
+  // Some rows may store project creator as members.id instead of user_id.
+  const { data: byMemberId, error: byMemberIdError } = await supabase
+    .from("members")
+    .select("id, user_id, name, username")
+    .in("id", unresolvedIds);
+
+  return {
+    data: [...(byUserId || []), ...(byMemberId || [])],
+    error: byUserIdError || byMemberIdError || null,
+  };
+}

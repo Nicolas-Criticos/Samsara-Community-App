@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import logo1Url from "../../assets/images/logo1.jpg";
 import vgLogoUrl from "../../assets/images/vg-logo.png";
 import ParticleField from "../../components/portal/ParticleField.jsx";
 import { IconButton } from "../../components/ui/index.js";
 import ProjectCreateModal from "./components/ProjectCreateModal.jsx";
+import ProjectDashboardTable from "./components/ProjectDashboardTable.jsx";
 import ProjectDetailModal from "./components/ProjectDetailModal.jsx";
 import ProjectNode from "./components/ProjectNode.jsx";
 import RealmSwitch from "./components/RealmSwitch.jsx";
@@ -11,6 +13,7 @@ import { useProjects } from "./hooks/useProjects.js";
 
 export default function ProjectsPage() {
   const pf = useProjects();
+  const [dashboardOpen, setDashboardOpen] = useState(false);
 
   return (
     <div
@@ -44,6 +47,8 @@ export default function ProjectsPage() {
 
       <RealmSwitch
         isVrisch={pf.isVrisch}
+        dashboardOpen={dashboardOpen}
+        onDashboardToggle={() => setDashboardOpen((prev) => !prev)}
         onRealmChange={(checked) =>
           pf.navigate(
             checked ? "/projects/vrischgewagt" : "/projects/samsara",
@@ -52,27 +57,33 @@ export default function ProjectsPage() {
         }
       />
 
-      <div className="fixed left-1/2 top-[75vh] z-6 -translate-x-1/2 -translate-y-1/2 max-md:top-[72vh] [@media(max-width:1024px)_and_(orientation:landscape)]:top-[80%]">
-        <IconButton
-          icon="plus"
-          aria-label="Seed Project"
-          className="relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.9),rgba(230,225,215,0.65))] text-[1.9rem] font-light leading-none text-[rgba(60,55,45,0.8)] shadow-none hover:scale-[1.08]! [&_span_svg]:h-1/2 [&_span_svg]:w-1/2 [&_span_svg]:max-h-[22px] [&_span_svg]:max-w-[22px]"
-          onClick={() => pf.setCreateOpen(true)}
-        />
-      </div>
-
-      <div className="fixed inset-0 z-2" id="projectField">
-        {pf.projects.slice(0, pf.visibleCount).map((project, i) => (
-          <ProjectNode
-            key={project.id}
-            project={project}
-            isVrisch={pf.isVrisch}
-            x={pf.positions[i]?.x ?? 0}
-            y={pf.positions[i]?.y ?? 0}
-            onOpen={pf.openProjectDetail}
+      {!dashboardOpen ? (
+        <div className="fixed left-1/2 top-[75vh] z-6 -translate-x-1/2 -translate-y-1/2 max-md:top-[72vh] [@media(max-width:1024px)_and_(orientation:landscape)]:top-[80%]">
+          <IconButton
+            icon="plus"
+            aria-label="Seed Project"
+            className="relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.9),rgba(230,225,215,0.65))] text-[1.9rem] font-light leading-none text-[rgba(60,55,45,0.8)] shadow-none hover:scale-[1.08]! [&_span_svg]:h-1/2 [&_span_svg]:w-1/2 [&_span_svg]:max-h-[22px] [&_span_svg]:max-w-[22px]"
+            onClick={() => pf.setCreateOpen(true)}
           />
-        ))}
-      </div>
+        </div>
+      ) : null}
+
+      {dashboardOpen ? (
+        <ProjectDashboardTable projects={pf.projects} isVrisch={pf.isVrisch} />
+      ) : (
+        <div className="fixed inset-0 z-2" id="projectField">
+          {pf.projects.slice(0, pf.visibleCount).map((project, i) => (
+            <ProjectNode
+              key={project.id}
+              project={project}
+              isVrisch={pf.isVrisch}
+              x={pf.positions[i]?.x ?? 0}
+              y={pf.positions[i]?.y ?? 0}
+              onOpen={pf.openProjectDetail}
+            />
+          ))}
+        </div>
+      )}
 
       {!pf.isVrisch ? (
         <div
