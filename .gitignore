@@ -17,6 +17,7 @@ yarn-debug.log*
 # Build output (if added later)
 dist/
 build/
+node_modules/
 
 # Supabase local
 .supabase/
