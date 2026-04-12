@@ -1,8 +1,8 @@
 export default function RealmSwitch({
   isVrisch,
   onRealmChange,
-  dashboardOpen,
-  onDashboardToggle,
+  viewMode,
+  onViewModeChange,
 }) {
   return (
     <div
@@ -51,17 +51,27 @@ export default function RealmSwitch({
           VRISCHGEWAGT
         </span>
       </div>
-      <button
-        type="button"
-        onClick={onDashboardToggle}
-        className={`cursor-pointer text-[0.62rem] uppercase tracking-[0.16em] transition-opacity hover:opacity-100 ${
-          isVrisch
-            ? "text-[rgba(245,240,232,0.82)] opacity-90"
-            : "text-[rgba(43,43,43,0.68)] opacity-80"
-        }`}
-      >
-        {dashboardOpen ? "Hide dashboard" : "View dashboard"}
-      </button>
+
+      <div className="flex items-center gap-3">
+        {["field", "table", "calendar"].map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => onViewModeChange(mode)}
+            className={`cursor-pointer text-[0.62rem] uppercase tracking-[0.16em] transition-opacity hover:opacity-100 ${
+              viewMode === mode
+                ? "opacity-100 underline underline-offset-2"
+                : "opacity-50"
+            } ${
+              isVrisch
+                ? "text-[rgba(245,240,232,0.82)]"
+                : "text-[rgba(43,43,43,0.68)]"
+            }`}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
