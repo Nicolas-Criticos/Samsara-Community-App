@@ -174,7 +174,7 @@ function GanttRow({ project, wStart, totalDays, isVrisch, onProjectClick, isEven
         className={`flex w-32 shrink-0 cursor-pointer flex-col justify-center overflow-hidden px-2 max-md:w-20 ${
           isVrisch ? "text-[rgba(238,233,224,0.85)]" : "text-[rgba(43,43,43,0.85)]"
         }`}
-        onClick={() => onProjectClick(project)}
+        onClick={() => onProjectClick?.(project)}
         title={project.title}
       >
         <span className="truncate text-[0.68rem] font-medium leading-tight">
@@ -396,7 +396,7 @@ export default function ProjectGanttView({ projects, isVrisch, onProjectClick })
                   className={`flex h-10 w-32 shrink-0 cursor-pointer flex-col justify-center overflow-hidden border-r px-2 max-md:w-20 ${dividerClass} ${
                     isVrisch ? "text-[rgba(238,233,224,0.65)]" : "text-[rgba(43,43,43,0.6)]"
                   } ${i % 2 === 0 ? (isVrisch ? "bg-white/[0.01]" : "bg-black/[0.015]") : ""}`}
-                  onClick={() => onProjectClick(project)}
+                  onClick={() => onProjectClick?.(project)}
                   title={project.title}
                 >
                   <span className="truncate text-[0.68rem] font-medium leading-tight">
