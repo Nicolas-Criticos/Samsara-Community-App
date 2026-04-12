@@ -507,6 +507,7 @@ export default function ProjectDetailPage() {
           }
         />
 
+        {console.log("[detail] tasks =", tasks)}
         <ul className="mb-10 space-y-3">
           {tasks.length === 0 ? (
             <li className={`text-[0.88rem] ${muted}`}>No tasks yet.</li>
