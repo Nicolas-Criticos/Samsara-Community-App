@@ -366,6 +366,8 @@ export function useProjects() {
       cny,
       inspiration,
       imageFile,
+      startDate,
+      endDate,
     }) => {
       const title = rawTitle.trim();
       const description = rawDescription.trim();
@@ -408,6 +410,8 @@ export function useProjects() {
         chinese_new_year: isVrisch ? false : Boolean(cny),
         image_url,
         inspiration_link: inspirationLinkVal,
+        start_date: startDate || null,
+        end_date: endDate || null,
       });
 
       if (error) {
