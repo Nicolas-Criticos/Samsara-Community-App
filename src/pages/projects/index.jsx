@@ -70,7 +70,7 @@ export default function ProjectsPage() {
       ) : null}
 
       {viewMode === "table" ? (
-        <ProjectDashboardTable projects={pf.projects} isVrisch={pf.isVrisch} />
+        <ProjectDashboardTable projects={pf.projects} isVrisch={pf.isVrisch} realm={pf.realm} />
       ) : viewMode === "calendar" ? (
         <ProjectCalendarView projects={pf.projects} isVrisch={pf.isVrisch} />
       ) : (
