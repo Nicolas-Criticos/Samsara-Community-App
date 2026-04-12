@@ -148,6 +148,15 @@ export default function ProjectGanttView({ projects, isVrisch, onProjectClick })
           <span className={`w-fit rounded px-1 py-px text-[0.5rem] uppercase tracking-wide ${pillClass(project, isVrisch)}`}>
             {project.status ?? "—"}
           </span>
+          {project.end_date ? (
+            <span className={`text-[0.5rem] leading-tight ${isVrisch ? "text-[rgba(200,195,185,0.5)]" : "text-[rgba(75,71,65,0.45)]"}`}>
+              → {String(project.end_date).slice(0,10)}
+            </span>
+          ) : (
+            <span className={`text-[0.5rem] leading-tight ${isVrisch ? "text-[rgba(200,195,185,0.35)]" : "text-[rgba(75,71,65,0.3)]"}`}>
+              no end date
+            </span>
+          )}
         </div>
 
         {/* Day cells */}
