@@ -73,7 +73,6 @@ async function fetchActivityBundle(projectId) {
     fetchProjectTasks(projectId),
     fetchProjectUpdates(projectId),
   ]);
-  console.log("[fetchActivityBundle] tRes:", tRes, "uRes:", uRes);
   return {
     tasks: tRes.error ? [] : tRes.data || [],
     updates: uRes.error ? [] : uRes.data || [],
