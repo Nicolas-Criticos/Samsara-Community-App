@@ -5,6 +5,7 @@ import vgLogoUrl from "../../assets/images/vg-logo.png";
 import ParticleField from "../../components/portal/ParticleField.jsx";
 import { IconButton } from "../../components/ui/index.js";
 import ProjectCalendarView from "./components/ProjectCalendarView.jsx";
+import ProjectGanttView from "./components/ProjectGanttView.jsx";
 import ProjectCreateModal from "./components/ProjectCreateModal.jsx";
 import ProjectDashboardTable from "./components/ProjectDashboardTable.jsx";
 import ProjectDetailModal from "./components/ProjectDetailModal.jsx";
@@ -73,6 +74,8 @@ export default function ProjectsPage() {
         <ProjectDashboardTable projects={pf.projects} isVrisch={pf.isVrisch} realm={pf.realm} />
       ) : viewMode === "calendar" ? (
         <ProjectCalendarView projects={pf.projects} isVrisch={pf.isVrisch} />
+      ) : viewMode === "gantt" ? (
+        <ProjectGanttView projects={pf.projects} isVrisch={pf.isVrisch} />
       ) : (
         <div className="fixed inset-0 z-2" id="projectField">
           {pf.projects.slice(0, pf.visibleCount).map((project, i) => (
