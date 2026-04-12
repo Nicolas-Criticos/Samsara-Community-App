@@ -334,10 +334,12 @@ export function useProjectDetailPage() {
         end_date,
       });
       if (error) return { error: error.message };
-      invalidateActivity();
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.projectActivity(project.id),
+      });
       return {};
     },
-    [project, invalidateActivity]
+    [project, queryClient, invalidateActivity]
   );
 
   const updateTask = useCallback(
@@ -353,10 +355,12 @@ export function useProjectDetailPage() {
       };
       const { error } = await updateProjectTask(taskId, row);
       if (error) return { error: error.message };
-      invalidateActivity();
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.projectActivity(project.id),
+      });
       return {};
     },
-    [project, invalidateActivity]
+    [project, queryClient, invalidateActivity]
   );
 
   const updateProjectFields = useCallback(
