@@ -53,7 +53,7 @@ export default function RealmSwitch({
       </div>
 
       <div className="flex items-center gap-3">
-        {["field", "table", "calendar"].map((mode) => (
+        {["field", "table", "calendar", "gantt"].map((mode) => (
           <button
             key={mode}
             type="button"
