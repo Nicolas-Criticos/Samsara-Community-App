@@ -31,7 +31,6 @@ import {
 } from "../../../lib/projectActivityApi.js";
 import { DEFAULT_PROJECT_TASK_STATUS } from "../../../lib/projectTaskConstants.js";
 import {
-  uploadProjectActivityImageFile,
   uploadProjectImageFile,
 } from "../../../lib/storage.js";
 import { projectDetailHref, slugifyProjectTitle } from "../../../lib/slug.js";
@@ -324,24 +323,12 @@ export function useProjectDetailPage() {
   });
 
   const addTask = useCallback(
-    async ({ name, description, file, start_date, end_date, status }) => {
+    async ({ name, description, start_date, end_date, status }) => {
       if (!project) return { error: "No project" };
-      let image = null;
-      if (file) {
-        const { error: upErr, url } = await uploadProjectActivityImageFile(
-          project.id,
-          "tasks",
-          file
-        );
-        if (upErr) return { error: upErr.message };
-        image = url;
-      }
       const { error } = await insertProjectTask({
         projectId: project.id,
-        realm,
         name,
         description,
-        image,
         status: status || DEFAULT_PROJECT_TASK_STATUS,
         start_date,
         end_date,
@@ -350,22 +337,13 @@ export function useProjectDetailPage() {
       invalidateActivity();
       return {};
     },
-    [project, realm, invalidateActivity]
+    [project, invalidateActivity]
   );
 
   const updateTask = useCallback(
     async (taskId, payload) => {
       if (!project) return { error: "No project" };
-      const {
-        name,
-        description,
-        status,
-        start_date,
-        end_date,
-        file,
-        removeImage,
-      } = payload;
-
+      const { name, description, status, start_date, end_date } = payload;
       const row = {
         name: name.trim(),
         description: description.trim() || null,
@@ -373,19 +351,6 @@ export function useProjectDetailPage() {
         start_date: start_date || null,
         end_date: end_date || null,
       };
-
-      if (removeImage) {
-        row.image = null;
-      } else if (file) {
-        const { error: upErr, url } = await uploadProjectActivityImageFile(
-          project.id,
-          "tasks",
-          file
-        );
-        if (upErr) return { error: upErr.message };
-        row.image = url;
-      }
-
       const { error } = await updateProjectTask(taskId, row);
       if (error) return { error: error.message };
       invalidateActivity();
