@@ -10,7 +10,6 @@ import {
   DEFAULT_PROJECT_TASK_STATUS,
   PROJECT_TASK_STATUSES,
 } from "../../../lib/projectTaskConstants.js";
-import ImageDropzone from "./ImageDropzone.jsx";
 
 function dateInputValue(isoOrDate) {
   if (!isoOrDate) return "";
@@ -25,10 +24,6 @@ function dateInputValue(isoOrDate) {
   }
 }
 
-/**
- * @param {object|null} task — null = create, else edit existing row
- * @param {(payload: object) => Promise<{ error?: string }>} onSave
- */
 export default function ProjectTaskModal({
   open,
   onClose,
@@ -37,8 +32,6 @@ export default function ProjectTaskModal({
   onSave,
 }) {
   const isEdit = Boolean(task);
-  const [file, setFile] = useState(null);
-  const [removeImage, setRemoveImage] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const { register, handleSubmit, reset } = useForm({
@@ -60,8 +53,6 @@ export default function ProjectTaskModal({
         endDate: "",
         status: DEFAULT_PROJECT_TASK_STATUS,
       });
-      setFile(null);
-      setRemoveImage(false);
       setSaving(false);
       return;
     }
@@ -75,8 +66,6 @@ export default function ProjectTaskModal({
           ? task.status
           : DEFAULT_PROJECT_TASK_STATUS,
       });
-      setFile(null);
-      setRemoveImage(false);
     } else {
       reset({
         name: "",
@@ -85,8 +74,6 @@ export default function ProjectTaskModal({
         endDate: "",
         status: DEFAULT_PROJECT_TASK_STATUS,
       });
-      setFile(null);
-      setRemoveImage(false);
     }
   }, [open, task, reset]);
 
@@ -103,8 +90,6 @@ export default function ProjectTaskModal({
       start_date: values.startDate.trim() || null,
       end_date: values.endDate.trim() || null,
       status: values.status,
-      file,
-      removeImage: isEdit ? removeImage : false,
     });
     setSaving(false);
     if (error) {
@@ -114,15 +99,18 @@ export default function ProjectTaskModal({
     onClose();
   }
 
-  const showExistingImage = isEdit && task?.image && !file && !removeImage;
+  // Shared input styling — high contrast for both themes
+  const inputClass = isVrisch
+    ? "w-full rounded-xl border border-white/20 bg-white/8 px-4 py-3 text-[0.88rem] text-[rgba(240,235,225,0.95)] placeholder:text-[rgba(200,195,185,0.45)] focus:border-white/35 focus:outline-none focus:ring-0"
+    : "w-full rounded-xl border border-[rgba(100,85,65,0.25)] bg-white px-4 py-3 text-[0.88rem] text-[#2b2b2b] placeholder:text-[rgba(100,90,70,0.4)] focus:border-[rgba(100,85,65,0.5)] focus:outline-none focus:ring-0";
 
-  const dateFieldClass = isVrisch
-    ? "w-full rounded-[10px] border border-white/10 bg-white/5 px-3 py-2.5 text-[rgba(240,235,225,0.92)]"
-    : "w-full rounded-[10px] border-0 bg-white/90 px-3 py-2.5 text-[#2b2b2b]";
+  const labelClass = `mb-1.5 block text-[0.65rem] uppercase tracking-[0.14em] ${
+    isVrisch ? "text-[rgba(200,195,185,0.7)]" : "text-[rgba(80,70,60,0.7)]"
+  }`;
 
   const selectClass = isVrisch
-    ? "w-full cursor-pointer rounded-[10px] border border-white/10 bg-white/5 px-3 py-2.5 text-[0.8rem] text-[rgba(240,235,225,0.92)]"
-    : "w-full cursor-pointer rounded-[10px] border-0 bg-white/90 px-3 py-2.5 text-[0.8rem] text-[#2b2b2b]";
+    ? "w-full cursor-pointer rounded-xl border border-white/20 bg-[rgba(30,28,25,0.95)] px-4 py-3 text-[0.88rem] text-[rgba(240,235,225,0.95)] focus:outline-none"
+    : "w-full cursor-pointer rounded-xl border border-[rgba(100,85,65,0.25)] bg-white px-4 py-3 text-[0.88rem] text-[#2b2b2b] focus:outline-none";
 
   return (
     <Modal
@@ -131,82 +119,86 @@ export default function ProjectTaskModal({
       ariaLabel={isEdit ? "Edit task" : "Add task"}
       panelClassName={
         isVrisch
-          ? "border border-white/12 bg-[rgba(18,18,20,0.97)] text-[rgba(235,230,220,0.92)] shadow-[0_24px_64px_rgba(0,0,0,0.65)]"
-          : undefined
+          ? "border border-white/15 bg-[rgba(16,15,13,0.98)] text-[rgba(235,230,220,0.92)] shadow-[0_24px_64px_rgba(0,0,0,0.75)]"
+          : "border border-[rgba(100,85,65,0.15)] bg-[rgba(252,249,244,0.99)] text-[#2b2b2b] shadow-[0_24px_64px_rgba(0,0,0,0.12)]"
       }
     >
-      <h2 className="mb-1 text-[1.05rem] font-normal tracking-wide">
+      <h2
+        className={`mb-1 text-[1.1rem] font-normal tracking-wide ${
+          isVrisch ? "text-[rgba(240,235,225,0.95)]" : "text-[#2b2b2b]"
+        }`}
+      >
         {isEdit ? "Edit task" : "Add task"}
       </h2>
       <p
-        className={`mb-5 text-[0.78rem] leading-snug ${
+        className={`mb-6 text-[0.78rem] leading-snug ${
           isVrisch
-            ? "text-[rgba(200,195,185,0.65)]"
-            : "text-[rgba(60,55,45,0.6)]"
+            ? "text-[rgba(200,195,185,0.6)]"
+            : "text-[rgba(80,70,55,0.65)]"
         }`}
       >
         {isEdit
-          ? "Update details, schedule, status, or image."
+          ? "Update details, schedule or status."
           : "Add a checklist item for this project."}
       </p>
-      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-        <TextInput
-          className={
-            isVrisch
-              ? "w-full rounded-[10px] border border-white/10 bg-white/5 px-3 py-2.5 text-[rgba(240,235,225,0.92)] placeholder:text-[rgba(200,195,185,0.4)]"
-              : "w-full rounded-[10px] border-0 bg-white/90 px-3 py-2.5 text-[#2b2b2b]"
-          }
-          placeholder="Task name"
-          autoComplete="off"
-          disabled={saving}
-          {...register("name", { required: true })}
-        />
-        <TextArea
-          className={
-            isVrisch
-              ? "min-h-[72px] w-full resize-none rounded-[10px] border border-white/10 bg-white/5 px-3 py-2.5 text-[rgba(240,235,225,0.92)] placeholder:text-[rgba(200,195,185,0.4)]"
-              : "min-h-[72px] w-full resize-none rounded-[10px] border-0 bg-white/90 px-3 py-2.5 text-[#2b2b2b]"
-          }
-          placeholder="Description (optional)"
-          disabled={saving}
-          {...register("description")}
-        />
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label
-              className={`mb-1 block text-[0.65rem] uppercase tracking-[0.14em] ${
-                isVrisch
-                  ? "text-[rgba(200,195,185,0.65)]"
-                  : "text-[rgba(80,70,60,0.65)]"
-              }`}
-              htmlFor="task-start-date"
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+        <div>
+          <label className={labelClass} htmlFor="task-name">
+            Task name
+          </label>
+          <input
+            id="task-name"
+            type="text"
+            className={inputClass}
+            placeholder="What needs to be done?"
+            autoComplete="off"
+            disabled={saving}
+            {...register("name", { required: true })}
+          />
+        </div>
+
+        <div>
+          <label className={labelClass} htmlFor="task-description">
+            Description{" "}
+            <span
+              className={
+                isVrisch ? "text-[rgba(160,155,145,0.6)]" : "text-[rgba(120,110,90,0.5)]"
+              }
             >
+              (optional)
+            </span>
+          </label>
+          <textarea
+            id="task-description"
+            className={`${inputClass} min-h-[80px] resize-none`}
+            placeholder="More detail about this task…"
+            disabled={saving}
+            {...register("description")}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass} htmlFor="task-start-date">
               Start date
             </label>
             <input
               id="task-start-date"
               type="date"
-              className={dateFieldClass}
+              className={inputClass}
               disabled={saving}
               {...register("startDate")}
             />
           </div>
           <div>
-            <label
-              className={`mb-1 block text-[0.65rem] uppercase tracking-[0.14em] ${
-                isVrisch
-                  ? "text-[rgba(200,195,185,0.65)]"
-                  : "text-[rgba(80,70,60,0.65)]"
-              }`}
-              htmlFor="task-end-date"
-            >
+            <label className={labelClass} htmlFor="task-end-date">
               End date
             </label>
             <input
               id="task-end-date"
               type="date"
-              className={dateFieldClass}
+              className={inputClass}
               disabled={saving}
               {...register("endDate")}
             />
@@ -214,14 +206,7 @@ export default function ProjectTaskModal({
         </div>
 
         <div>
-          <label
-            className={`mb-1 block text-[0.65rem] uppercase tracking-[0.14em] ${
-              isVrisch
-                ? "text-[rgba(200,195,185,0.65)]"
-                : "text-[rgba(80,70,60,0.65)]"
-            }`}
-            htmlFor="task-status"
-          >
+          <label className={labelClass} htmlFor="task-status">
             Status
           </label>
           <select
@@ -238,80 +223,33 @@ export default function ProjectTaskModal({
           </select>
         </div>
 
-        {showExistingImage ? (
-          <div>
-            <div
-              className={`mb-1 text-[0.65rem] uppercase tracking-[0.14em] ${
-                isVrisch
-                  ? "text-[rgba(200,195,185,0.65)]"
-                  : "text-[rgba(80,70,60,0.65)]"
-              }`}
-            >
-              Current image
-            </div>
-            <img
-              src={task.image}
-              alt=""
-              className="max-h-36 rounded-lg object-contain"
-            />
-            <button
-              type="button"
-              className={`mt-2 text-[0.72rem] underline ${
-                isVrisch
-                  ? "text-[rgba(230,200,180,0.85)]"
-                  : "text-[rgba(100,75,55,0.85)]"
-              }`}
-              onClick={() => {
-                setRemoveImage(true);
-                setFile(null);
-              }}
-            >
-              Remove image
-            </button>
-          </div>
-        ) : null}
-
-        <ImageDropzone
-          label={
-            isEdit
-              ? file || !task?.image || removeImage
-                ? "Image (optional)"
-                : "Replace image (optional)"
-              : "Image (optional)"
-          }
-          file={file}
-          onChange={(f) => {
-            setFile(f);
-            if (f) setRemoveImage(false);
-          }}
-          isVrisch={isVrisch}
-          disabled={saving}
-        />
-
-        <div className="flex flex-wrap gap-3 pt-2">
-          <Button
-            type="button"
-            variant="link"
-            className={
+        <div
+          className={`flex flex-wrap items-center gap-3 border-t pt-4 ${
+            isVrisch ? "border-white/10" : "border-[rgba(100,85,65,0.12)]"
+          }`}
+        >
+          <button
+            type="submit"
+            disabled={saving}
+            className={`cursor-pointer rounded-full px-6 py-2.5 text-[0.7rem] uppercase tracking-[0.16em] text-white shadow-none transition-all duration-200 hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-50 ${
               isVrisch
-                ? "text-[rgba(210,200,185,0.8)]"
-                : "text-[rgba(90,75,55,0.75)]"
-            }
+                ? "bg-[radial-gradient(circle,#5a6b4a,#3d4a32)]"
+                : "bg-[radial-gradient(circle,#8a7f6d,#6f6456)]"
+            }`}
+          >
+            {saving ? "Saving…" : isEdit ? "Save task" : "Add task"}
+          </button>
+          <button
+            type="button"
+            className={`cursor-pointer text-[0.72rem] uppercase tracking-[0.14em] underline underline-offset-2 transition-opacity hover:opacity-100 ${
+              isVrisch
+                ? "text-[rgba(200,195,185,0.65)]"
+                : "text-[rgba(100,85,65,0.65)]"
+            }`}
             onClick={onClose}
             disabled={saving}
           >
             Cancel
-          </Button>
-          <button
-            type="submit"
-            disabled={saving}
-            className={
-              isVrisch
-                ? "cursor-pointer rounded-full border-0 bg-[radial-gradient(circle,#5a6b4a,#3d4a32)] px-5 py-2 text-[0.62rem] uppercase tracking-[0.16em] text-white shadow-none transition-all duration-250 ease-in-out hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-                : "cursor-pointer rounded-full border-0 bg-[radial-gradient(circle,#8a7f6d,#6f6456)] px-5 py-2 text-[0.62rem] uppercase tracking-[0.16em] text-white shadow-none transition-all duration-250 ease-in-out hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-            }
-          >
-            {saving ? "Saving…" : isEdit ? "Save task" : "Add task"}
           </button>
         </div>
       </form>
