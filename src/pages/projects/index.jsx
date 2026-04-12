@@ -4,6 +4,7 @@ import logo1Url from "../../assets/images/logo1.jpg";
 import vgLogoUrl from "../../assets/images/vg-logo.png";
 import ParticleField from "../../components/portal/ParticleField.jsx";
 import { IconButton } from "../../components/ui/index.js";
+import ProjectCalendarView from "./components/ProjectCalendarView.jsx";
 import ProjectCreateModal from "./components/ProjectCreateModal.jsx";
 import ProjectDashboardTable from "./components/ProjectDashboardTable.jsx";
 import ProjectDetailModal from "./components/ProjectDetailModal.jsx";
@@ -13,7 +14,7 @@ import { useProjects } from "./hooks/useProjects.js";
 
 export default function ProjectsPage() {
   const pf = useProjects();
-  const [dashboardOpen, setDashboardOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("field");
 
   return (
     <div
@@ -47,8 +48,8 @@ export default function ProjectsPage() {
 
       <RealmSwitch
         isVrisch={pf.isVrisch}
-        dashboardOpen={dashboardOpen}
-        onDashboardToggle={() => setDashboardOpen((prev) => !prev)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         onRealmChange={(checked) =>
           pf.navigate(
             checked ? "/projects/vrischgewagt" : "/projects/samsara",
@@ -57,7 +58,7 @@ export default function ProjectsPage() {
         }
       />
 
-      {!dashboardOpen ? (
+      {viewMode === "field" ? (
         <div className="fixed left-1/2 top-[75vh] z-6 -translate-x-1/2 -translate-y-1/2 max-md:top-[72vh] [@media(max-width:1024px)_and_(orientation:landscape)]:top-[80%]">
           <IconButton
             icon="plus"
@@ -68,8 +69,10 @@ export default function ProjectsPage() {
         </div>
       ) : null}
 
-      {dashboardOpen ? (
+      {viewMode === "table" ? (
         <ProjectDashboardTable projects={pf.projects} isVrisch={pf.isVrisch} />
+      ) : viewMode === "calendar" ? (
+        <ProjectCalendarView projects={pf.projects} isVrisch={pf.isVrisch} />
       ) : (
         <div className="fixed inset-0 z-2" id="projectField">
           {pf.projects.slice(0, pf.visibleCount).map((project, i) => (
