@@ -301,7 +301,7 @@ export default function ProjectDashboardTable({ projects, isVrisch, realm }) {
                 <tr
                   key={row.id}
                   onClick={() => {
-                    const href = projectDetailHref(row.original.realm ?? realm ?? "samsara", row.original.title);
+                    const href = projectDetailHref(realm ?? "samsara", row.original.title);
                     if (href) navigate(href);
                   }}
                   className={`cursor-pointer border-b transition-colors ${
