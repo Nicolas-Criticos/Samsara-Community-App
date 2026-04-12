@@ -10,6 +10,14 @@ export async function fetchProjectTasks(projectId) {
     .order("created_at", { ascending: true });
 }
 
+export async function fetchProjectUpdates(projectId) {
+  return supabase
+    .from("project_updates")
+    .select("id, title, description, created_at")
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: true });
+}
+
 export async function insertProjectTask({
   projectId,
   name,
@@ -41,7 +49,6 @@ export async function insertProjectUpdate({
 }
 
 export async function updateProjectTask(taskId, fields) {
-  // Strip out any fields that don't exist on the table
   const { image, realm, project_id, ...safeFields } = fields;
   return supabase.from("project_tasks").update(safeFields).eq("id", taskId);
 }
