@@ -515,20 +515,28 @@ export default function ProjectDetailPage() {
               <li key={t.id} className={card}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="flex min-w-0 flex-1 items-start gap-2">
-                    <span
-                      className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[0.65rem] ${
+                    <button
+                      type="button"
+                      title={isTaskCompletedStatus(t.status) ? "Mark as pending" : "Mark as complete"}
+                      onClick={() => updateTask(t.id, {
+                        name: t.name,
+                        description: t.description || "",
+                        status: isTaskCompletedStatus(t.status) ? "Pending" : "Completed",
+                        start_date: t.start_date || null,
+                        end_date: t.end_date || null,
+                      })}
+                      className={`mt-0.5 inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border text-[0.65rem] transition-all hover:scale-110 ${
                         isTaskCompletedStatus(t.status)
                           ? isVrisch
                             ? "border-emerald-400/50 bg-emerald-500/25 text-emerald-100"
                             : "border-emerald-600/40 bg-emerald-100 text-emerald-900"
                           : isVrisch
-                          ? "border-white/20 text-[rgba(220,215,205,0.5)]"
-                          : "border-[rgba(60,50,40,0.2)] text-[rgba(60,50,40,0.35)]"
+                          ? "border-white/20 text-[rgba(220,215,205,0.5)] hover:border-white/40"
+                          : "border-[rgba(60,50,40,0.2)] text-[rgba(60,50,40,0.35)] hover:border-[rgba(60,50,40,0.5)]"
                       }`}
-                      aria-hidden
                     >
                       {isTaskCompletedStatus(t.status) ? "✓" : ""}
-                    </span>
+                    </button>
                     <div className="min-w-0">
                       <div className="font-medium">{t.name}</div>
                       {taskDateRangeLine(t.start_date, t.end_date) ? (
@@ -543,13 +551,7 @@ export default function ProjectDetailPage() {
                           {t.description}
                         </p>
                       ) : null}
-                      {t.image ? (
-                        <img
-                          src={t.image}
-                          alt=""
-                          className="mt-2 max-h-40 rounded-lg object-contain"
-                        />
-                      ) : null}
+
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -662,13 +664,6 @@ export default function ProjectDetailPage() {
                       >
                         {row.data.description}
                       </p>
-                    ) : null}
-                    {row.data.image ? (
-                      <img
-                        src={row.data.image}
-                        alt=""
-                        className="mt-2 max-h-48 rounded-xl object-contain"
-                      />
                     ) : null}
                   </div>
                 ) : (
