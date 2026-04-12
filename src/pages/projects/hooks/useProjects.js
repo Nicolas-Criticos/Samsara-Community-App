@@ -369,6 +369,7 @@ export function useProjects() {
       startDate,
       endDate,
     }) => {
+      console.log("[createProject] startDate=", startDate, "endDate=", endDate);
       const title = rawTitle.trim();
       const description = rawDescription.trim();
       const timeline = rawTimeline.trim();
