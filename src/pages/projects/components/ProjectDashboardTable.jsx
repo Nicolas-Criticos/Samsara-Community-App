@@ -5,7 +5,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { capitalizeWords } from "../../../lib/textFormat.js";
+import { projectDetailHref } from "../../../lib/slug.js";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -175,7 +177,8 @@ function FilterTabs({ activeTab, onChange, isVrisch }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ProjectDashboardTable({ projects, isVrisch }) {
+export default function ProjectDashboardTable({ projects, isVrisch, realm }) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
   const [sorting, setSorting] = useState([]);
 
@@ -297,7 +300,11 @@ export default function ProjectDashboardTable({ projects, isVrisch }) {
               table.getRowModel().rows.map((row, i) => (
                 <tr
                   key={row.id}
-                  className={`border-b transition-colors ${
+                  onClick={() => {
+                    const href = projectDetailHref(realm ?? "samsara", row.original.title);
+                    if (href) navigate(href);
+                  }}
+                  className={`cursor-pointer border-b transition-colors ${
                     isVrisch
                       ? `border-white/8 ${i % 2 === 0 ? "" : "bg-white/[0.02]"} hover:bg-white/5`
                       : `border-[rgba(120,110,90,0.15)] ${i % 2 === 0 ? "" : "bg-[rgba(122,112,94,0.04)]"} hover:bg-[rgba(122,112,94,0.07)]`
