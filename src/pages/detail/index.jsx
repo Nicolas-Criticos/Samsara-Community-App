@@ -109,6 +109,17 @@ function isTaskCompletedStatus(status) {
 }
 
 export default function ProjectDetailPage() {
+  useEffect(() => {
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.documentElement.style.overflow = "";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, []);
+
   const {
     realm,
     isVrisch,
