@@ -1,13 +1,16 @@
 import { supabase } from "./supabase.js";
 
 export async function fetchProjectTasks(projectId) {
-  return supabase
+  console.log("[fetchProjectTasks] projectId =", projectId);
+  const result = await supabase
     .from("project_tasks")
     .select(
       "id, name, description, status, start_date, end_date, created_at"
     )
     .eq("project", projectId)
     .order("created_at", { ascending: true });
+  console.log("[fetchProjectTasks] result =", result);
+  return result;
 }
 
 export async function fetchProjectUpdates(projectId) {
