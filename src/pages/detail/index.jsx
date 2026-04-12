@@ -201,11 +201,11 @@ export default function ProjectDetailPage() {
   }, [tasks, updates]);
 
   const pageBg = isVrisch
-    ? "min-h-screen bg-[radial-gradient(circle_at_center,rgba(22,22,22,1),rgba(8,8,8,1))] text-[rgba(235,230,220,0.92)]"
+    ? "min-h-screen bg-[radial-gradient(circle_at_center,rgba(22,22,22,1),rgba(8,8,8,1))] text-[rgba(235,230,220,0.92)] [color-scheme:dark]"
     : "min-h-screen bg-[radial-gradient(circle_at_center,rgba(240,235,220,1),rgba(252,248,242,1))] text-[#2b2b2b]";
 
   const card = isVrisch
-    ? "rounded-2xl border border-white/10 bg-white/5 p-5 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
+    ? "rounded-2xl border border-white/15 bg-white/8 p-5 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
     : "rounded-2xl border border-[rgba(90,70,50,0.12)] bg-white/80 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.06)]";
 
   const muted = isVrisch
@@ -507,7 +507,6 @@ export default function ProjectDetailPage() {
           }
         />
 
-        {console.log("[detail] tasks =", tasks)}
         <ul className="mb-10 space-y-3">
           {tasks.length === 0 ? (
             <li className={`text-[0.88rem] ${muted}`}>No tasks yet.</li>
