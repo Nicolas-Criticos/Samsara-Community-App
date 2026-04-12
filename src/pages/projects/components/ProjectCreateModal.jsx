@@ -17,6 +17,8 @@ export default function ProjectCreateModal({
       status: "open",
       cny: false,
       inspiration: "",
+      startDate: "",
+      endDate: "",
     },
   });
 
@@ -29,6 +31,8 @@ export default function ProjectCreateModal({
         status: "open",
         cny: false,
         inspiration: "",
+        startDate: "",
+        endDate: "",
       });
       if (imageFileRef.current) imageFileRef.current.value = "";
     }
@@ -40,8 +44,25 @@ export default function ProjectCreateModal({
 
   function onSubmit(values) {
     const imageFile = imageFileRef.current?.files?.[0] ?? null;
-    createProjectMutation.mutate({ ...values, imageFile });
+    const { startDate, endDate, ...rest } = values;
+    createProjectMutation.mutate({
+      ...rest,
+      imageFile,
+      start_date: startDate || null,
+      end_date: endDate || null,
+    });
   }
+
+  // Shared date input class
+  const dateInputClass = `w-full rounded-[10px] p-2.5 text-[0.8rem] ${
+    isVrisch
+      ? "border border-white/10 bg-white/5 text-[rgba(240,235,225,0.9)] placeholder:text-[rgba(200,195,185,0.45)] [color-scheme:dark]"
+      : "border-0 bg-white/90 text-[#2b2b2b] [color-scheme:light]"
+  }`;
+
+  const dateLabelClass = `text-[0.68rem] uppercase tracking-[0.12em] ${
+    isVrisch ? "text-[rgba(200,195,185,0.55)]" : "text-[rgba(75,71,65,0.5)]"
+  }`;
 
   return (
     <div
@@ -50,7 +71,7 @@ export default function ProjectCreateModal({
       }`}
     >
       <form
-        className={`flex h-[min(85vw,520px)] w-[min(85vw,520px)] flex-col gap-3 overflow-auto rounded-full px-12 py-12 text-center ${
+        className={`flex h-[min(85vw,560px)] w-[min(85vw,520px)] flex-col gap-3 overflow-auto rounded-full px-12 py-12 text-center ${
           isVrisch
             ? "bg-[radial-gradient(circle_at_center,rgba(26,26,26,0.96),rgba(10,10,10,0.94))] text-[rgba(235,230,220,0.92)] shadow-[0_0_55px_rgba(0,0,0,0.9),inset_0_0_28px_rgba(255,255,255,0.035)]"
             : "bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.98),rgba(235,230,220,0.9))]"
@@ -93,6 +114,34 @@ export default function ProjectCreateModal({
           {...register("timeline")}
         />
 
+        {/* ── Date range ── */}
+        <div className="flex gap-2">
+          <div className="flex flex-1 flex-col gap-1 text-left">
+            <label className={dateLabelClass} htmlFor="start_date_input">
+              Start date
+            </label>
+            <input
+              id="start_date_input"
+              type="date"
+              className={dateInputClass}
+              disabled={pending}
+              {...register("startDate")}
+            />
+          </div>
+          <div className="flex flex-1 flex-col gap-1 text-left">
+            <label className={dateLabelClass} htmlFor="end_date_input">
+              End date
+            </label>
+            <input
+              id="end_date_input"
+              type="date"
+              className={dateInputClass}
+              disabled={pending}
+              {...register("endDate")}
+            />
+          </div>
+        </div>
+
         <input
           ref={imageFileRef}
           type="file"
@@ -111,30 +160,15 @@ export default function ProjectCreateModal({
           }`}
         >
           <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="radio"
-              value="open"
-              disabled={pending}
-              {...register("status")}
-            />
+            <input type="radio" value="open" disabled={pending} {...register("status")} />
             🟢 Open contribution
           </label>
           <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="radio"
-              value="application"
-              disabled={pending}
-              {...register("status")}
-            />
+            <input type="radio" value="application" disabled={pending} {...register("status")} />
             🟠 By application
           </label>
           <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="radio"
-              value="closed"
-              disabled={pending}
-              {...register("status")}
-            />
+            <input type="radio" value="closed" disabled={pending} {...register("status")} />
             🔴 Closed
           </label>
         </div>
@@ -142,19 +176,11 @@ export default function ProjectCreateModal({
         {!isVrisch ? (
           <>
             <label className="cursor-pointer text-[0.7rem] uppercase tracking-[0.14em] opacity-75">
-              <input
-                type="checkbox"
-                className="mr-1.5"
-                disabled={pending}
-                {...register("cny")}
-              />
+              <input type="checkbox" className="mr-1.5" disabled={pending} {...register("cny")} />
               🧧 Chinese New Year
             </label>
             <div className="mt-1.5">
-              <label
-                className="text-[11px] uppercase tracking-wide text-[rgba(42,40,40,0.5)]"
-                htmlFor="inspiration_link"
-              >
+              <label className="text-[11px] uppercase tracking-wide text-[rgba(42,40,40,0.5)]" htmlFor="inspiration_link">
                 Vision Board
               </label>
               <TextInput
