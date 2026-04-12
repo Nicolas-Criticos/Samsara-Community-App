@@ -366,10 +366,9 @@ export function useProjects() {
       cny,
       inspiration,
       imageFile,
-      startDate,
-      endDate,
+      start_date,
+      end_date,
     }) => {
-      console.log("[createProject] startDate=", startDate, "endDate=", endDate);
       const title = rawTitle.trim();
       const description = rawDescription.trim();
       const timeline = rawTimeline.trim();
@@ -411,8 +410,8 @@ export function useProjects() {
         chinese_new_year: isVrisch ? false : Boolean(cny),
         image_url,
         inspiration_link: inspirationLinkVal,
-        start_date: startDate || null,
-        end_date: endDate || null,
+        start_date: start_date || null,
+        end_date: end_date || null,
       });
 
       if (error) {
