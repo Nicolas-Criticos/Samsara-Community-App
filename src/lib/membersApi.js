@@ -15,6 +15,7 @@ export async function fetchCircleMembers() {
       "id, user_id, username, name, bio, profile_image_url, website, profile_pdf_url, archetype"
     )
     .not("username", "is", null)
+    .neq("archived", true)
     .order("created_at", { ascending: true });
 }
 
