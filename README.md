@@ -4,6 +4,8 @@ This App is for the Inner circle of Samsara to communicate and track projects ha
 ## Deploy
 ### Build
 ```shell
+npm install
+npm run build
 docker build -t jrfmdev/samsara-community-app:prod . --no-cache
 ```
 
