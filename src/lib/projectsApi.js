@@ -16,10 +16,15 @@ export async function fetchProjectsInRealm(realm) {
       image_url,
       status,
       roles_needed,
+      timeline,
       created_by,
       created_at,
       chinese_new_year,
-      inspiration_link
+      inspiration_link,
+      archived,
+      realm,
+      start_date,
+      end_date
     `
     )
     .eq("realm", realm)
