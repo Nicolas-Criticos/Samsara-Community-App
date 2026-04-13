@@ -69,7 +69,7 @@ export default function CirclePage() {
       <div className="fixed right-7 top-6 z-20 max-md:bottom-4 max-md:left-1/2 max-md:right-auto max-md:top-auto max-md:-translate-x-1/2 max-md:text-center">
         <Link
           className="text-[0.75rem] tracking-[0.18em] text-[rgba(43,43,43,0.55)] no-underline max-md:inline-flex max-md:max-w-[280px] max-md:w-full max-md:justify-center"
-          to="/projects/samsara"
+          to="/projects/vrischgewagt"
         >
           PROJECT FIELD
         </Link>
