@@ -78,7 +78,7 @@ export default function ProjectsPage() {
         <ProjectGanttView projects={pf.projects} isVrisch={pf.isVrisch} onProjectClick={pf.openProjectDetail} />
       ) : (
         <div className="fixed inset-0 z-2" id="projectField">
-          {pf.projects.slice(0, pf.visibleCount).map((project, i) => (
+          {pf.fieldProjects.slice(0, pf.visibleCount).map((project, i) => (
             <ProjectNode
               key={project.id}
               project={project}
@@ -86,6 +86,10 @@ export default function ProjectsPage() {
               x={pf.positions[i]?.x ?? 0}
               y={pf.positions[i]?.y ?? 0}
               onOpen={pf.openProjectDetail}
+              currentUserId={pf.currentUserId}
+              onComplete={pf.handleCompleteProject}
+              onArchive={pf.handleArchiveProject}
+              onDelete={pf.handleDeleteProject}
             />
           ))}
         </div>
@@ -125,13 +129,8 @@ export default function ProjectsPage() {
         detailRoles={pf.detailRoles}
         primaryConfig={pf.primaryConfig}
         inspirationLink={pf.inspirationLink}
-        applicationBanner={pf.applicationBanner}
-        showEndProject={pf.showEndProject}
         currentUserId={pf.currentUserId}
         onClose={pf.closeProjectDetail}
-        onStatusChange={pf.onStatusChange}
-        onEndProject={pf.endProject}
-        onHandleApplications={pf.handleApplications}
       />
 
       <ProjectCreateModal
