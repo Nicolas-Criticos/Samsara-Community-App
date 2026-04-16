@@ -16,20 +16,16 @@ import { fetchMemberUsernameByUserId } from "../../../lib/membersApi.js";
 import {
   addProjectContributor,
   archiveProject,
-  fetchApplicantNameMap,
+  completeProject,
   fetchEnrichedProjects,
-  fetchPendingApplications,
   findExistingContributor,
   formatContributorsLine,
-  insertProjectApplication,
+  hardDeleteProject,
   insertProjectRow,
   removeProjectContributor,
-  setApplicationStatus,
-  updateProjectStatus,
 } from "../../../lib/projectsApi.js";
 import { uploadProjectImageFile } from "../../../lib/storage.js";
 import {
-  buildPrimaryActionConfig,
   emptyPrimaryConfig,
 } from "../lib/primaryActions.js";
 
@@ -40,28 +36,10 @@ async function fetchModalExtrasFull(realm, projectId, userId, createdBy) {
     findExistingContributor(projectId, userId, realm),
   ]);
 
-  let applicationBanner = null;
-  let showEndProject = false;
-  if (createdBy === userId) {
-    showEndProject = true;
-    const { data: apps, error } = await fetchPendingApplications(
-      projectId,
-      realm
-    );
-    if (!error && apps?.length) {
-      const nameMap = await fetchApplicantNameMap(
-        apps.map((a) => a.applicant_id)
-      );
-      applicationBanner = { apps, nameMap, projectId };
-    }
-  }
-
   return {
     detailCreator: `Created by ${creator?.username || "Unknown"}`,
     detailContributors: line,
     isDetailContributor: Boolean(contribRow),
-    applicationBanner,
-    showEndProject,
   };
 }
 
@@ -109,17 +87,27 @@ export function useProjects() {
 
   const projects = projectsQuery.data ?? [];
 
+  // Active projects only — shown as bubbles in the field view
+  const fieldProjects = useMemo(
+    () => projects.filter((p) => !p.completed_at && !p.archived),
+    [projects]
+  );
+
+  // Animate positions based on active (field) projects only
   useEffect(() => {
     if (!currentUserId || !projectsQuery.isSuccess) return undefined;
     const enriched = projectsQuery.data;
     if (!enriched) return undefined;
+
+    const active = enriched.filter((p) => !p.completed_at && !p.archived);
+
     let cancelled = false;
     loadTimeoutsRef.current.forEach(clearTimeout);
     loadTimeoutsRef.current = [];
 
-    setPositions(enriched.map(() => randomProjectNodePosition()));
+    setPositions(active.map(() => randomProjectNodePosition()));
     setVisibleCount(0);
-    enriched.forEach((_, i) => {
+    active.forEach((_, i) => {
       const id = setTimeout(() => {
         if (!cancelled) {
           setVisibleCount((c) => Math.max(c, i + 1));
@@ -156,10 +144,8 @@ export function useProjects() {
 
   const detailCreator = modalExtrasQuery.data?.detailCreator ?? "";
   const detailContributors = modalExtrasQuery.data?.detailContributors ?? "";
-  const applicationBanner = modalExtrasQuery.data?.applicationBanner ?? null;
   const isDetailContributor =
     modalExtrasQuery.data?.isDetailContributor ?? false;
-  const showEndProject = modalExtrasQuery.data?.showEndProject ?? false;
 
   const invalidateProjectsList = useCallback(() => {
     if (currentUserId) {
@@ -214,7 +200,7 @@ export function useProjects() {
     async (proj) => {
       if (
         !confirm(
-          "Leave this project? You can join again later if it stays open."
+          "Leave this project? You can join again later."
         )
       ) {
         return;
@@ -233,44 +219,46 @@ export function useProjects() {
     [realm, currentUserId, invalidateModalExtras]
   );
 
-  const applyToProject = useCallback(
-    async (projectId) => {
-      const message = prompt("Why do you feel called to contribute?");
-      if (!message) return;
-
-      await insertProjectApplication({
-        projectId,
-        applicantId: currentUserId,
-        message,
-        realm,
-      });
-    },
-    [realm, currentUserId]
-  );
-
+  // Primary config for field modal (simplified join/leave, no application flow)
   const applyPrimaryForProjectStable = useCallback(
     (proj) => {
-      setPrimaryConfig(
-        buildPrimaryActionConfig(
-          proj,
-          currentUserId,
-          {
-            joinProject,
-            applyToProject,
-            leaveProject: leaveProjectFromField,
-            isContributor: isDetailContributor,
-          },
-          isVrisch
-        )
-      );
+      if (!currentUserId) return;
+      const isCreator = proj.created_by === currentUserId;
+
+      if (isCreator) {
+        setPrimaryConfig(emptyPrimaryConfig(isVrisch));
+        return;
+      }
+
+      if (isDetailContributor) {
+        setPrimaryConfig({
+          hidden: false,
+          disabled: false,
+          text: "Leave project",
+          className: isVrisch
+            ? "cursor-pointer rounded-full border border-[rgba(220,180,140,0.35)] bg-transparent px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] text-[rgba(235,220,200,0.85)] transition-all duration-250 hover:scale-[1.02]"
+            : "cursor-pointer rounded-full border border-[rgba(120,90,60,0.35)] bg-transparent px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] text-[rgba(120,90,60,0.85)] transition-all duration-250 hover:scale-[1.02]",
+          onClick: () => leaveProjectFromField(proj),
+        });
+        return;
+      }
+
+      setPrimaryConfig({
+        hidden: false,
+        disabled: false,
+        text: "Join project",
+        className: isVrisch
+          ? "cursor-pointer rounded-full border-2 border-[rgba(200,190,160,0.55)] bg-white/8 px-6 py-2.5 text-[0.65rem] uppercase tracking-[0.18em] text-[rgba(240,235,225,0.92)] transition-all duration-250 hover:scale-[1.02] hover:bg-white/12"
+          : "cursor-pointer rounded-full border-2 border-[rgba(100,85,65,0.5)] bg-white/50 px-6 py-2.5 text-[0.65rem] uppercase tracking-[0.18em] text-[rgba(55,48,38,0.9)] transition-all duration-250 hover:scale-[1.02] hover:bg-white/80",
+        onClick: () => joinProject(proj),
+      });
     },
     [
       currentUserId,
-      joinProject,
-      applyToProject,
-      leaveProjectFromField,
       isDetailContributor,
       isVrisch,
+      joinProject,
+      leaveProjectFromField,
     ]
   );
 
@@ -278,38 +266,6 @@ export function useProjects() {
     if (!detailProject || !currentUserId) return;
     applyPrimaryForProjectStable(detailProject);
   }, [detailProject, currentUserId, applyPrimaryForProjectStable]);
-
-  const handleApplications = useCallback(
-    async (apps, nameMap, projectId) => {
-      for (const app of apps) {
-        const approve = confirm(
-          `${nameMap[app.applicant_id] || "Unknown"}\n\n${app.message}\n\nApprove?`
-        );
-
-        if (approve) {
-          await addProjectContributor({
-            projectId,
-            memberId: app.applicant_id,
-            realm,
-          });
-
-          await setApplicationStatus(app.id, realm, "approved");
-        } else {
-          await setApplicationStatus(app.id, realm, "rejected");
-        }
-      }
-
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.projectsFieldModalExtras(
-          realm,
-          projectId,
-          currentUserId
-        ),
-      });
-      alert("Applications processed.");
-    },
-    [realm, currentUserId, queryClient]
-  );
 
   const openProjectDetail = useCallback(
     (project) => {
@@ -325,37 +281,72 @@ export function useProjects() {
     [resetDetailUi]
   );
 
-  const onStatusChange = useMutation({
-    mutationFn: async ({ newStatus, project }) => {
-      await updateProjectStatus(
-        project.id,
-        realm,
-        currentUserId,
-        newStatus
-      );
-    },
-    onSuccess: (_d, { newStatus, project }) => {
-      setDetailProject((p) => (p ? { ...p, status: newStatus } : p));
-      invalidateProjectsList();
-      applyPrimaryForProjectStable({ ...project, status: newStatus });
-    },
-  });
-
   const closeProjectDetail = useCallback(() => {
     setDetailProject(null);
     setInspirationLink(null);
     resetDetailUi();
   }, [resetDetailUi]);
 
-  const endProject = useMutation({
+  // ── Complete project ─────────────────────────────────────────────────────
+  const completeProjectMutation = useMutation({
     mutationFn: async (project) => {
-      await archiveProject(project.id, realm, currentUserId);
+      const { error } = await completeProject(project.id, realm, currentUserId);
+      if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
-      closeProjectDetail();
+    onSuccess: (_, project) => {
+      // If detail modal is open for this project, close it
+      if (detailProject?.id === project.id) closeProjectDetail();
       invalidateProjectsList();
     },
+    onError: (err) => alert(err.message || "Could not complete project."),
   });
+
+  // ── Archive project ──────────────────────────────────────────────────────
+  const archiveProjectMutation = useMutation({
+    mutationFn: async (project) => {
+      const { error } = await archiveProject(project.id, realm, currentUserId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_, project) => {
+      if (detailProject?.id === project.id) closeProjectDetail();
+      invalidateProjectsList();
+    },
+    onError: (err) => alert(err.message || "Could not archive project."),
+  });
+
+  // ── Hard delete project ──────────────────────────────────────────────────
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (project) => {
+      const { error } = await hardDeleteProject(project.id, realm, currentUserId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_, project) => {
+      if (detailProject?.id === project.id) closeProjectDetail();
+      invalidateProjectsList();
+    },
+    onError: (err) => alert(err.message || "Could not delete project."),
+  });
+
+  const handleCompleteProject = useCallback(
+    (project) => {
+      completeProjectMutation.mutate(project);
+    },
+    [completeProjectMutation]
+  );
+
+  const handleArchiveProject = useCallback(
+    (project) => {
+      archiveProjectMutation.mutate(project);
+    },
+    [archiveProjectMutation]
+  );
+
+  const handleDeleteProject = useCallback(
+    (project) => {
+      deleteProjectMutation.mutate(project);
+    },
+    [deleteProjectMutation]
+  );
 
   const createProjectMutation = useMutation({
     mutationFn: async ({
@@ -446,26 +437,12 @@ export function useProjects() {
   const isDetailCreator =
     detailProject && detailProject.created_by === currentUserId;
 
-  const handleEndProject = useCallback(
-    (project) => {
-      if (!confirm("This will end the project permanently.")) return;
-      endProject.mutate(project);
-    },
-    [endProject]
-  );
-
-  const handleStatusChange = useCallback(
-    (newStatus, project) => {
-      onStatusChange.mutate({ newStatus, project });
-    },
-    [onStatusChange]
-  );
-
   return {
     realm,
     isVrisch,
     navigate,
     projects,
+    fieldProjects,
     visibleCount,
     positions,
     particles,
@@ -475,17 +452,15 @@ export function useProjects() {
     detailRoles,
     primaryConfig,
     inspirationLink,
-    applicationBanner,
-    showEndProject,
     isDetailCreator,
     currentUserId,
     createOpen,
     setCreateOpen,
     openProjectDetail,
     closeProjectDetail,
-    onStatusChange: handleStatusChange,
-    endProject: handleEndProject,
-    handleApplications,
+    handleCompleteProject,
+    handleArchiveProject,
+    handleDeleteProject,
     createProjectMutation,
   };
 }
