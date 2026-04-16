@@ -37,27 +37,17 @@ function truncate(value, max = 60) {
 }
 
 // ─── Filter Logic ────────────────────────────────────────────────────────────
-
-const COMPLETED_STATUSES = ["completed", "closed", "finalising"];
-const OPEN_STATUSES = ["open"];
-const APPLICATION_STATUSES = ["application"];
+//
+// Active  = no completed_at AND not archived
+// Past    = has completed_at AND not archived
+// Archived = archived === true
 
 function filterProjects(projects, tab) {
   switch (tab) {
     case "active":
-      return projects.filter(
-        (p) =>
-          !p.archived &&
-          (OPEN_STATUSES.includes((p.status ?? "").toLowerCase()) ||
-           APPLICATION_STATUSES.includes((p.status ?? "").toLowerCase()) ||
-           ACTIVE_STATUSES.includes((p.status ?? "").toLowerCase()))
-      );
-    case "completed":
-      return projects.filter(
-        (p) =>
-          COMPLETED_STATUSES.includes((p.status ?? "").toLowerCase()) ||
-          p.archived
-      );
+      return projects.filter((p) => !p.completed_at && !p.archived);
+    case "past":
+      return projects.filter((p) => Boolean(p.completed_at) && !p.archived);
     case "archived":
       return projects.filter((p) => p.archived);
     default:
@@ -65,53 +55,40 @@ function filterProjects(projects, tab) {
   }
 }
 
-// ─── Status Pill ─────────────────────────────────────────────────────────────
+// ─── Lifecycle Pill ───────────────────────────────────────────────────────────
 
-const ACTIVE_STATUSES = ["active", "in_progress", "started", "running"];
-
-function getStatusVariant(status, archived) {
-  if (archived) return "archived";
-  const s = (status ?? "").toLowerCase();
-  if (OPEN_STATUSES.includes(s)) return "open";
-  if (APPLICATION_STATUSES.includes(s)) return "application";
-  if (ACTIVE_STATUSES.includes(s)) return "active";
-  if (COMPLETED_STATUSES.includes(s)) return "completed";
-  if (s === "pending") return "pending";
-  return "neutral";
+function getLifecycleVariant(project) {
+  if (project.archived) return "archived";
+  if (project.completed_at) return "past";
+  return "active";
 }
 
-function StatusPill({ status, archived, isVrisch }) {
-  const variant = getStatusVariant(status, archived);
+function LifecyclePill({ project, isVrisch }) {
+  const variant = getLifecycleVariant(project);
 
   const styles = {
-    open: isVrisch
+    active: isVrisch
       ? "bg-emerald-900/40 text-emerald-300 ring-1 ring-emerald-500/30"
       : "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300/60",
-    application: isVrisch
-      ? "bg-amber-900/40 text-amber-300 ring-1 ring-amber-500/30"
-      : "bg-amber-100 text-amber-800 ring-1 ring-amber-300/60",
-    active: isVrisch
-      ? "bg-amber-900/40 text-amber-300 ring-1 ring-amber-500/30"
-      : "bg-amber-100 text-amber-800 ring-1 ring-amber-300/60",
-    completed: isVrisch
+    past: isVrisch
       ? "bg-stone-700/60 text-stone-300 ring-1 ring-stone-500/30"
       : "bg-stone-200 text-stone-600 ring-1 ring-stone-300/60",
     archived: isVrisch
       ? "bg-white/10 text-white/50 ring-1 ring-white/10"
       : "bg-stone-200/70 text-stone-500 ring-1 ring-stone-300/50",
-    pending: isVrisch
-      ? "bg-indigo-900/40 text-indigo-300 ring-1 ring-indigo-500/30"
-      : "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300/60",
-    neutral: isVrisch
-      ? "bg-white/8 text-white/60 ring-1 ring-white/10"
-      : "bg-stone-100 text-stone-600 ring-1 ring-stone-300/40",
+  };
+
+  const labels = {
+    active: "Active",
+    past: "Past",
+    archived: "Archived",
   };
 
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide ${styles[variant]}`}
     >
-      {capitalizeWords(status ?? "—")}
+      {labels[variant]}
     </span>
   );
 }
@@ -138,7 +115,7 @@ function SortIcon({ direction }) {
 const TABS = [
   { key: "all", label: "All" },
   { key: "active", label: "Active" },
-  { key: "completed", label: "Completed" },
+  { key: "past", label: "Past" },
   { key: "archived", label: "Archived" },
 ];
 
@@ -206,15 +183,12 @@ export default function ProjectDashboardTable({ projects, isVrisch, realm }) {
       },
       { accessorKey: "timeline", header: "Timeline" },
       {
-        accessorKey: "status",
+        id: "lifecycle",
         header: "Status",
-        cell: ({ getValue, row }) => (
-          <StatusPill
-            status={getValue()}
-            archived={row.original.archived}
-            isVrisch={isVrisch}
-          />
+        cell: ({ row }) => (
+          <LifecyclePill project={row.original} isVrisch={isVrisch} />
         ),
+        enableSorting: false,
       },
       {
         accessorKey: "roles_needed",
