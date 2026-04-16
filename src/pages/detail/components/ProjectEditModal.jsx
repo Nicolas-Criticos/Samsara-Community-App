@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { Button, TextArea, TextInput } from "../../../components/ui/index.js";
 
 /**
- * Edit project fields (creators see status; contributors see the rest including image).
+ * Edit project fields (creators can edit everything including dates).
  */
 export default function ProjectEditModal({
   isVrisch,
@@ -19,10 +19,11 @@ export default function ProjectEditModal({
       title: "",
       description: "",
       timeline: "",
-      status: "open",
       cny: false,
       inspiration: "",
       rolesNeeded: "",
+      startDate: "",
+      endDate: "",
     },
   });
 
@@ -32,10 +33,11 @@ export default function ProjectEditModal({
       title: project.title || "",
       description: project.description || "",
       timeline: project.timeline || "",
-      status: project.status || "open",
       cny: Boolean(project.chinese_new_year),
       inspiration: project.inspiration_link || "",
       rolesNeeded: project.roles_needed || "",
+      startDate: project.start_date || "",
+      endDate: project.end_date || "",
     });
     if (imageFileRef.current) imageFileRef.current.value = "";
   }, [open, project, reset]);
@@ -60,11 +62,13 @@ export default function ProjectEditModal({
       title: t,
       description: d,
       timeline: values.timeline.trim(),
-      status: isCreator ? values.status : project.status,
+      status: project.status,
       imageFile: file,
       inspiration_link: values.inspiration.trim(),
       chinese_new_year: values.cny,
       roles_needed: values.rolesNeeded.trim(),
+      start_date: values.startDate || null,
+      end_date: values.endDate || null,
     });
     setSaving(false);
     if (error) {
@@ -73,6 +77,16 @@ export default function ProjectEditModal({
     }
     onClose();
   }
+
+  const dateInputClass = `w-full rounded-[10px] p-2.5 text-[0.8rem] ${
+    isVrisch
+      ? "border border-white/10 bg-white/5 text-[rgba(240,235,225,0.9)] placeholder:text-[rgba(200,195,185,0.45)] [color-scheme:dark]"
+      : "border-0 bg-white/90 text-[#2b2b2b] [color-scheme:light]"
+  }`;
+
+  const dateLabelClass = `text-[0.68rem] uppercase tracking-[0.12em] ${
+    isVrisch ? "text-[rgba(200,195,185,0.55)]" : "text-[rgba(75,71,65,0.5)]"
+  }`;
 
   return (
     <div
@@ -131,6 +145,34 @@ export default function ProjectEditModal({
           {...register("timeline")}
         />
 
+        {/* Start / End dates */}
+        <div className="grid grid-cols-2 gap-3 text-left">
+          <div>
+            <label className={dateLabelClass} htmlFor="edit-start-date">
+              Start date
+            </label>
+            <input
+              id="edit-start-date"
+              type="date"
+              className={dateInputClass}
+              disabled={saving}
+              {...register("startDate")}
+            />
+          </div>
+          <div>
+            <label className={dateLabelClass} htmlFor="edit-end-date">
+              End date
+            </label>
+            <input
+              id="edit-end-date"
+              type="date"
+              className={dateInputClass}
+              disabled={saving}
+              {...register("endDate")}
+            />
+          </div>
+        </div>
+
         <TextInput
           className={`w-full rounded-[10px] p-2.5 ${
             isVrisch
@@ -172,47 +214,6 @@ export default function ProjectEditModal({
             Leave empty to keep the current image.
           </p>
         </div>
-
-        {isCreator ? (
-          <div
-            className={`flex flex-col gap-2 text-left text-[0.72rem] ${
-              isVrisch
-                ? "text-[rgba(225,220,210,0.85)]"
-                : "text-[rgba(43,43,43,0.75)]"
-            }`}
-          >
-            <span className="text-[0.65rem] uppercase tracking-[0.12em] opacity-80">
-              Contribution mode
-            </span>
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                value="open"
-                disabled={saving}
-                {...register("status")}
-              />
-              🟢 Open contribution
-            </label>
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                value="application"
-                disabled={saving}
-                {...register("status")}
-              />
-              🟠 By application
-            </label>
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                value="closed"
-                disabled={saving}
-                {...register("status")}
-              />
-              🔴 Closed
-            </label>
-          </div>
-        ) : null}
 
         {!isVrisch ? (
           <>
