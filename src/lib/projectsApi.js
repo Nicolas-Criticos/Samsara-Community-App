@@ -22,13 +22,13 @@ export async function fetchProjectsInRealm(realm) {
       chinese_new_year,
       inspiration_link,
       archived,
+      completed_at,
       realm,
       start_date,
       end_date
     `
     )
     .eq("realm", realm)
-    .eq("archived", false)
     .order("created_at", { ascending: true });
 }
 
@@ -42,7 +42,7 @@ export async function countPendingApplications(projectId, realm) {
   return { count: count || 0, error };
 }
 
-/** Loads projects and attaches pending application counts for projects the user created. */
+/** Loads all projects (including archived/completed) and attaches pending application counts. */
 export async function fetchEnrichedProjects(realm, currentUserId) {
   const { data, error } = await fetchProjectsInRealm(realm);
   if (error) {
@@ -82,6 +82,30 @@ export async function fetchContributorUserIds(projectId, realm) {
     .select("member_id")
     .eq("project_id", projectId)
     .eq("realm", realm);
+}
+
+/** Returns contributors as an array of { contributorId, memberId, username }. */
+export async function fetchContributorsList(projectId, realm) {
+  const { data: contributors, error } = await supabase
+    .from("project_contributors")
+    .select("id, member_id")
+    .eq("project_id", projectId)
+    .eq("realm", realm);
+
+  if (error || !contributors?.length) return [];
+
+  const userIds = contributors.map((c) => c.member_id);
+  const { data: members } = await fetchMemberUsernamesByUserIds(userIds);
+  const nameById = {};
+  (members || []).forEach((m) => {
+    nameById[m.user_id] = m.username;
+  });
+
+  return contributors.map((c) => ({
+    contributorId: c.id,
+    memberId: c.member_id,
+    username: nameById[c.member_id] || "Unknown",
+  }));
 }
 
 export async function formatContributorsLine(projectId, realm) {
@@ -199,7 +223,27 @@ export async function updateProjectRow(projectId, realm, patch) {
 export async function archiveProject(projectId, realm, createdBy) {
   return supabase
     .from("projects")
-    .update({ archived: true, status: "closed" })
+    .update({ archived: true })
+    .eq("id", projectId)
+    .eq("created_by", createdBy)
+    .eq("realm", realm);
+}
+
+/** Marks a project as completed by setting completed_at to now. */
+export async function completeProject(projectId, realm, createdBy) {
+  return supabase
+    .from("projects")
+    .update({ completed_at: new Date().toISOString() })
+    .eq("id", projectId)
+    .eq("created_by", createdBy)
+    .eq("realm", realm);
+}
+
+/** Permanently deletes a project (hard delete). Cannot be undone. */
+export async function hardDeleteProject(projectId, realm, createdBy) {
+  return supabase
+    .from("projects")
+    .delete()
     .eq("id", projectId)
     .eq("created_by", createdBy)
     .eq("realm", realm);
@@ -209,7 +253,7 @@ export async function insertProjectRow(row) {
   return supabase.from("projects").insert([row]).select().single();
 }
 
-/** Full project row for the public detail page (by slugified title). */
+/** Full project row for the detail page (by slugified title). Includes archived/completed. */
 export async function fetchProjectBySlug(realm, slug) {
   const r = realm === "vrischgewagt" ? "vrischgewagt" : "samsara";
   const { data, error } = await supabase
@@ -226,12 +270,14 @@ export async function fetchProjectBySlug(realm, slug) {
       created_by,
       realm,
       archived,
+      completed_at,
       inspiration_link,
-      chinese_new_year
+      chinese_new_year,
+      start_date,
+      end_date
     `
     )
-    .eq("realm", r)
-    .eq("archived", false);
+    .eq("realm", r);
 
   if (error) {
     return { project: null, error };
