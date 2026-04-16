@@ -12,6 +12,7 @@ import ImageDropzone from "./components/ImageDropzone.jsx";
 import ProjectAddUpdateModal from "./components/ProjectAddUpdateModal.jsx";
 import ProjectDetailMenu from "./components/ProjectDetailMenu.jsx";
 import ProjectEditModal from "./components/ProjectEditModal.jsx";
+import ProjectBomPanel from "./components/ProjectBomPanel.jsx";
 import ProjectTaskModal from "./components/ProjectTaskModal.jsx";
 import { useProjectDetailPage } from "./hooks/useProjectDetailPage.js";
 
@@ -166,6 +167,7 @@ export default function ProjectDetailPage() {
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editProjectOpen, setEditProjectOpen] = useState(false);
+  const [bomOpen, setBomOpen] = useState(false);
 
   const editingTask = useMemo(
     () => (editingTaskId ? tasks.find((t) => t.id === editingTaskId) : null),
@@ -331,6 +333,20 @@ export default function ProjectDetailPage() {
             onLeave={() => leaveProjectContributor(project)}
             onApply={() => applyToProject(project.id)}
           />
+          {isCreator ? (
+            <button
+              type="button"
+              className={`shrink-0 cursor-pointer rounded-full border px-3 py-1 text-[0.6rem] uppercase tracking-[0.16em] transition-all hover:scale-[1.02] ${
+                isVrisch
+                  ? "border-white/15 bg-white/8 text-[rgba(235,230,220,0.75)] hover:bg-white/12"
+                  : "border-[rgba(90,70,50,0.15)] bg-white/50 text-[rgba(60,55,45,0.65)] hover:bg-white/80"
+              }`}
+              onClick={() => setBomOpen(true)}
+              title="Bill of Materials"
+            >
+              BOM
+            </button>
+          ) : null}
         </div>
 
         <ProjectEditModal
@@ -760,6 +776,13 @@ export default function ProjectDetailPage() {
           </Link>
         </div>
       </div>
+
+      <ProjectBomPanel
+        open={bomOpen}
+        onClose={() => setBomOpen(false)}
+        projectId={project?.id}
+        isVrisch={isVrisch}
+      />
     </div>
   );
 }
