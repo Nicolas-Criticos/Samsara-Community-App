@@ -10,17 +10,13 @@ import { queryKeys } from "../../../lib/queryKeys.js";
 import { fetchMemberUsernameByUserId } from "../../../lib/membersApi.js";
 import {
   addProjectContributor,
-  archiveProject,
-  fetchApplicantNameMap,
-  fetchPendingApplications,
+  completeProject,
+  fetchContributorsList,
   fetchProjectBySlug,
   findExistingContributor,
-  formatContributorsLine,
-  insertProjectApplication,
+  hardDeleteProject,
   removeProjectContributor,
-  setApplicationStatus,
   updateProjectRow,
-  updateProjectStatus,
 } from "../../../lib/projectsApi.js";
 import {
   fetchProjectTasks,
@@ -35,7 +31,6 @@ import {
 } from "../../../lib/storage.js";
 import { projectDetailHref, slugifyProjectTitle } from "../../../lib/slug.js";
 import {
-  buildPrimaryActionConfig,
   emptyPrimaryConfig,
 } from "../../projects/lib/primaryActions.js";
 
@@ -43,28 +38,24 @@ async function fetchProjectMeta(realm, project, userId) {
   const pid = project.id;
   const createdBy = project.created_by;
 
-  const [{ data: creator }, line, { data: contribRow }] = await Promise.all([
-    fetchMemberUsernameByUserId(createdBy),
-    formatContributorsLine(pid, realm),
-    findExistingContributor(pid, userId, realm),
-  ]);
+  const [{ data: creator }, { data: contribRow }, contributorsList] =
+    await Promise.all([
+      fetchMemberUsernameByUserId(createdBy),
+      findExistingContributor(pid, userId, realm),
+      fetchContributorsList(pid, realm),
+    ]);
 
-  let applicationBanner = null;
-  if (createdBy === userId) {
-    const { data: apps, error } = await fetchPendingApplications(pid, realm);
-    if (!error && apps?.length) {
-      const nameMap = await fetchApplicantNameMap(
-        apps.map((a) => a.applicant_id)
-      );
-      applicationBanner = { apps, nameMap, projectId: pid };
-    }
-  }
+  const contributors = contributorsList || [];
+  const contribLine =
+    contributors.length > 0
+      ? `Contributors: ${contributors.map((c) => c.username).join(", ")}`
+      : "Contributors: None";
 
   return {
     detailCreator: `Created by ${creator?.username || "Unknown"}`,
-    detailContributors: line,
+    detailContributors: contribLine,
+    contributorsList: contributors,
     isContributor: Boolean(contribRow),
-    applicationBanner,
   };
 }
 
@@ -150,7 +141,7 @@ export function useProjectDetailPage() {
 
   const detailCreator = metaQuery.data?.detailCreator ?? "";
   const detailContributors = metaQuery.data?.detailContributors ?? "";
-  const applicationBanner = metaQuery.data?.applicationBanner ?? null;
+  const contributorsList = metaQuery.data?.contributorsList ?? [];
   const isContributor = metaQuery.data?.isContributor ?? false;
 
   const invalidateActivity = useCallback(() => {
@@ -169,6 +160,15 @@ export function useProjectDetailPage() {
     }
   }, [queryClient, realm, project?.id, currentUserId]);
 
+  const invalidateProject = useCallback(() => {
+    if (projectSlug) {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projectBySlug(realm, projectSlug),
+      });
+    }
+  }, [queryClient, realm, projectSlug]);
+
+  // ── Join (instant — no application flow) ──────────────────────────────────
   const joinProject = useCallback(
     async (p) => {
       const { data: existing } = await findExistingContributor(
@@ -197,7 +197,7 @@ export function useProjectDetailPage() {
     async (p) => {
       if (
         !confirm(
-          "Leave this project? You can join again later if it stays open."
+          "Leave this project? You can join again later."
         )
       ) {
         return;
@@ -216,110 +216,50 @@ export function useProjectDetailPage() {
     [realm, currentUserId, invalidateMeta]
   );
 
-  const applyToProject = useCallback(
-    async (projectId) => {
-      const message = prompt("Why do you feel called to contribute?");
-      if (!message) return;
-
-      await insertProjectApplication({
-        projectId,
-        applicantId: currentUserId,
-        message,
+  // ── Remove a specific contributor (creator only) ───────────────────────────
+  const removeContributor = useCallback(
+    async (memberId) => {
+      if (!project) return;
+      if (!confirm("Remove this contributor from the project?")) return;
+      const { error } = await removeProjectContributor({
+        projectId: project.id,
+        memberId,
         realm,
       });
-    },
-    [realm, currentUserId]
-  );
-
-  useEffect(() => {
-    if (!project || !currentUserId) return;
-    setPrimaryConfig(
-      buildPrimaryActionConfig(
-        project,
-        currentUserId,
-        {
-          joinProject,
-          applyToProject,
-          leaveProject: leaveProjectContributor,
-          isContributor,
-        },
-        isVrisch,
-        { memberActionsInMenu: true }
-      )
-    );
-  }, [
-    project,
-    currentUserId,
-    isVrisch,
-    isContributor,
-    joinProject,
-    applyToProject,
-    leaveProjectContributor,
-  ]);
-
-  const handleApplications = useCallback(
-    async (apps, nameMap, projectId) => {
-      for (const app of apps) {
-        const approve = confirm(
-          `${nameMap[app.applicant_id] || "Unknown"}\n\n${
-            app.message
-          }\n\nApprove?`
-        );
-
-        if (approve) {
-          await addProjectContributor({
-            projectId,
-            memberId: app.applicant_id,
-            realm,
-          });
-
-          await setApplicationStatus(app.id, realm, "approved");
-        } else {
-          await setApplicationStatus(app.id, realm, "rejected");
-        }
+      if (error) {
+        alert(error.message);
+        return;
       }
-
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.projectMeta(realm, projectId, currentUserId),
-      });
-      alert("Applications processed.");
+      invalidateMeta();
     },
-    [realm, currentUserId, queryClient]
+    [project, realm, invalidateMeta]
   );
 
-  const statusMutation = useMutation({
-    mutationFn: async ({ newStatus, p }) => {
-      await updateProjectStatus(p.id, realm, currentUserId, newStatus);
+  // ── Complete project ───────────────────────────────────────────────────────
+  const completeProjectMutation = useMutation({
+    mutationFn: async () => {
+      if (!project) throw new Error("No project");
+      const { error } = await completeProject(project.id, realm, currentUserId);
+      if (error) throw new Error(error.message);
     },
-    onSuccess: (_d, { newStatus, p }) => {
-      queryClient.setQueryData(
-        queryKeys.projectBySlug(realm, projectSlug),
-        (old) => (old ? { ...old, status: newStatus } : old)
-      );
-      setPrimaryConfig(
-        buildPrimaryActionConfig(
-          { ...p, status: newStatus },
-          currentUserId,
-          {
-            joinProject,
-            applyToProject,
-            leaveProject: leaveProjectContributor,
-            isContributor,
-          },
-          isVrisch,
-          { memberActionsInMenu: true }
-        )
-      );
+    onSuccess: () => {
+      invalidateProject();
+      navigate(`/projects/${realm}`, { replace: true });
     },
+    onError: (err) => alert(err.message || "Could not complete project."),
   });
 
-  const endProject = useMutation({
-    mutationFn: async (p) => {
-      await archiveProject(p.id, realm, currentUserId);
+  // ── Delete project (hard delete) ───────────────────────────────────────────
+  const deleteProjectMutation = useMutation({
+    mutationFn: async () => {
+      if (!project) throw new Error("No project");
+      const { error } = await hardDeleteProject(project.id, realm, currentUserId);
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       navigate(`/projects/${realm}`, { replace: true });
     },
+    onError: (err) => alert(err.message || "Could not delete project."),
   });
 
   const addTask = useCallback(
@@ -478,10 +418,6 @@ export function useProjectDetailPage() {
     ? `Needed: ${project.roles_needed}`
     : "";
 
-  const showEndProject = Boolean(
-    project && currentUserId && project.created_by === currentUserId
-  );
-
   const isCreator = Boolean(project && currentUserId === project.created_by);
 
   const showContributorAddUpdate = Boolean(
@@ -493,6 +429,47 @@ export function useProjectDetailPage() {
       currentUserId &&
       (project.created_by === currentUserId || isContributor)
   );
+
+  // Build simple primary config for join/leave (no application flow)
+  useEffect(() => {
+    if (!project || !currentUserId) return;
+
+    if (isCreator) {
+      setPrimaryConfig(emptyPrimaryConfig(isVrisch));
+      return;
+    }
+
+    if (isContributor) {
+      setPrimaryConfig({
+        hidden: false,
+        disabled: false,
+        text: "Leave project",
+        className: isVrisch
+          ? "cursor-pointer rounded-full border border-[rgba(220,180,140,0.35)] bg-transparent px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] text-[rgba(235,220,200,0.85)] transition-all duration-250 hover:scale-[1.02]"
+          : "cursor-pointer rounded-full border border-[rgba(120,90,60,0.35)] bg-transparent px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] text-[rgba(120,90,60,0.85)] transition-all duration-250 hover:scale-[1.02]",
+        onClick: () => leaveProjectContributor(project),
+      });
+      return;
+    }
+
+    setPrimaryConfig({
+      hidden: false,
+      disabled: false,
+      text: "Join project",
+      className: isVrisch
+        ? "cursor-pointer rounded-full border-2 border-[rgba(200,190,160,0.55)] bg-white/8 px-6 py-2.5 text-[0.65rem] uppercase tracking-[0.18em] text-[rgba(240,235,225,0.92)] transition-all duration-250 hover:scale-[1.02] hover:bg-white/12"
+        : "cursor-pointer rounded-full border-2 border-[rgba(100,85,65,0.5)] bg-white/50 px-6 py-2.5 text-[0.65rem] uppercase tracking-[0.18em] text-[rgba(55,48,38,0.9)] transition-all duration-250 hover:scale-[1.02] hover:bg-white/80",
+      onClick: () => joinProject(project),
+    });
+  }, [
+    project,
+    currentUserId,
+    isVrisch,
+    isCreator,
+    isContributor,
+    joinProject,
+    leaveProjectContributor,
+  ]);
 
   const ready = !sessionPending && Boolean(session);
   const isProjectLoading =
@@ -528,20 +505,20 @@ export function useProjectDetailPage() {
     updateProjectFields,
     joinProject,
     leaveProjectContributor,
-    applyToProject,
+    removeContributor,
     detailCreator,
     detailContributors,
+    contributorsList,
     detailRoles,
     inspirationLink,
-    applicationBanner,
     primaryConfig,
-    showEndProject,
-    onStatusChange: (newStatus, p) =>
-      statusMutation.mutate({ newStatus, p }),
-    endProject: (p) => {
-      if (!confirm("This will end the project permanently.")) return;
-      endProject.mutate(p);
+    completeProject: () => {
+      if (!confirm("Mark this project as completed? It will be removed from the field.")) return;
+      completeProjectMutation.mutate();
     },
-    handleApplications,
+    deleteProject: () => {
+      if (!confirm(`Permanently delete "${project?.title}"? This cannot be undone.`)) return;
+      deleteProjectMutation.mutate();
+    },
   };
 }
