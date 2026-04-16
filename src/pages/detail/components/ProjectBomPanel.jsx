@@ -5,7 +5,7 @@ import {
   insertBomItem,
   updateBomItem,
   deleteBomItem,
-} from "../../lib/projectBomApi.js";
+} from "../../../lib/projectBomApi.js";
 
 function formatRands(n) {
   return `R ${Number(n || 0).toLocaleString("en-ZA", {
