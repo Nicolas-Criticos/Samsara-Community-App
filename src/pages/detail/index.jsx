@@ -28,13 +28,6 @@ function formatWhen(iso) {
   }
 }
 
-function projectStatusLabel(s) {
-  if (s === "open") return "Open";
-  if (s === "application") return "Application";
-  if (s === "closed") return "Closed";
-  return s || "—";
-}
-
 function taskPillClass(status, isVrisch) {
   const s = status || "";
   if (s === "Completed" || s === "done") {
@@ -144,17 +137,15 @@ export default function ProjectDetailPage() {
     updateProjectFields,
     joinProject,
     leaveProjectContributor,
-    applyToProject,
+    removeContributor,
+    contributorsList,
     detailCreator,
     detailContributors,
     detailRoles,
     inspirationLink,
-    applicationBanner,
     primaryConfig,
-    showEndProject,
-    onStatusChange,
-    endProject,
-    handleApplications,
+    completeProject,
+    deleteProject,
   } = useProjectDetailPage();
 
   const [updFile, setUpdFile] = useState(null);
@@ -318,20 +309,10 @@ export default function ProjectDetailPage() {
             isVrisch={isVrisch}
             canEdit={isCreator || isContributor}
             showLeave={isContributor && !isCreator}
-            showJoin={
-              !isCreator &&
-              !isContributor &&
-              project.status === "open"
-            }
-            showApply={
-              !isCreator &&
-              !isContributor &&
-              project.status === "application"
-            }
+            showJoin={!isCreator && !isContributor}
             onEdit={() => setEditProjectOpen(true)}
             onJoin={() => joinProject(project)}
             onLeave={() => leaveProjectContributor(project)}
-            onApply={() => applyToProject(project.id)}
           />
           {isCreator ? (
             <button
@@ -393,25 +374,7 @@ export default function ProjectDetailPage() {
           </div>
         ) : null}
 
-        {isCreator ? (
-          <div className="mb-6 flex justify-center max-md:justify-start">
-            <select
-              className={`cursor-pointer appearance-none rounded-full border-0 px-5 py-2 text-[0.7rem] uppercase tracking-[0.18em] transition-[filter] duration-200 ${
-                isVrisch
-                  ? "bg-white/10 text-[rgba(235,230,220,0.85)] hover:brightness-110"
-                  : "bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.95),rgba(230,225,215,0.85))] text-[rgba(60,50,40,0.75)] hover:brightness-[1.05]"
-              }`}
-              value={project.status}
-              onChange={(e) => onStatusChange(e.target.value, project)}
-              aria-label="Project status"
-            >
-              <option value="open">🟢 Open</option>
-              <option value="application">🟠 Application</option>
-              <option value="closed">🔴 Closed</option>
-            </select>
-          </div>
-        ) : null}
-
+        {/* Creator / contributor info */}
         <div
           className={`mb-8 space-y-1 text-[0.8rem] ${
             isVrisch
@@ -420,50 +383,42 @@ export default function ProjectDetailPage() {
           }`}
         >
           <div>{detailCreator || "—"}</div>
-          <div>{detailContributors || "—"}</div>
+
+          {/* Contributors — creator sees ✕ remove buttons */}
+          {isCreator ? (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className={muted}>Contributors:</span>
+              {contributorsList.length > 0 ? (
+                contributorsList.map((c) => (
+                  <span
+                    key={c.memberId}
+                    className="inline-flex items-center gap-1"
+                  >
+                    <span>{c.username}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeContributor(c.memberId)}
+                      title={`Remove ${c.username}`}
+                      className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[0.6rem] transition-all hover:scale-110 ${
+                        isVrisch
+                          ? "bg-white/10 text-[rgba(220,210,195,0.7)] hover:bg-red-500/30 hover:text-red-200"
+                          : "bg-black/8 text-[rgba(60,50,40,0.55)] hover:bg-red-100 hover:text-red-700"
+                      }`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))
+              ) : (
+                <span>None</span>
+              )}
+            </div>
+          ) : (
+            <div>{detailContributors || "—"}</div>
+          )}
+
           {detailRoles ? <div>{detailRoles}</div> : null}
         </div>
-
-        {applicationBanner ? (
-          <div
-            className="mb-6 cursor-pointer rounded-full bg-amber-100/90 px-4 py-2.5 text-center text-[0.7rem] uppercase tracking-wider text-amber-950 shadow-sm transition-transform hover:scale-[1.02]"
-            onClick={() =>
-              handleApplications(
-                applicationBanner.apps,
-                applicationBanner.nameMap,
-                applicationBanner.projectId
-              )
-            }
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleApplications(
-                  applicationBanner.apps,
-                  applicationBanner.nameMap,
-                  applicationBanner.projectId
-                );
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            🟠 {applicationBanner.apps.length} application(s) pending
-          </div>
-        ) : null}
-
-        {showEndProject && project.created_by === currentUserId ? (
-          <button
-            type="button"
-            className={`mb-6 w-full max-w-md cursor-pointer rounded-full border bg-transparent px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] shadow-none transition-all duration-250 ease-in-out hover:scale-[1.02] ${
-              isVrisch
-                ? "border-[rgba(220,180,140,0.35)] text-[rgba(235,220,200,0.85)]"
-                : "border-[rgba(120,90,60,0.35)] text-[rgba(120,90,60,0.85)]"
-            }`}
-            onClick={() => endProject(project)}
-          >
-            End Project
-          </button>
-        ) : null}
 
         {!primaryConfig.hidden ? (
           <div className="mb-10 flex justify-center max-md:justify-start">
@@ -491,18 +446,6 @@ export default function ProjectDetailPage() {
               {project.timeline?.trim() ? project.timeline : "—"}
             </p>
           </div>
-          {!isCreator ? (
-            <div className="grid gap-1">
-              <span
-                className={`text-[0.65rem] uppercase tracking-[0.16em] ${muted}`}
-              >
-                Status
-              </span>
-              <p className="text-[0.9rem]">
-                {projectStatusLabel(project.status)}
-              </p>
-            </div>
-          ) : null}
         </div>
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -578,7 +521,6 @@ export default function ProjectDetailPage() {
                           {t.description}
                         </p>
                       ) : null}
-
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -764,6 +706,34 @@ export default function ProjectDetailPage() {
                 Post update
               </Button>
             </form>
+          </div>
+        ) : null}
+
+        {/* Creator lifecycle actions */}
+        {isCreator ? (
+          <div className="mt-10 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={completeProject}
+              className={`cursor-pointer rounded-full border px-4 py-2 text-[0.6rem] uppercase tracking-[0.16em] transition-all hover:scale-[1.02] ${
+                isVrisch
+                  ? "border-emerald-500/35 text-[rgba(180,230,180,0.85)] hover:bg-emerald-500/10"
+                  : "border-emerald-600/35 text-[rgba(40,120,40,0.85)] hover:bg-emerald-50"
+              }`}
+            >
+              ✓ Complete
+            </button>
+            <button
+              type="button"
+              onClick={deleteProject}
+              className={`cursor-pointer rounded-full border px-4 py-2 text-[0.6rem] uppercase tracking-[0.16em] transition-all hover:scale-[1.02] ${
+                isVrisch
+                  ? "border-red-500/30 text-[rgba(240,180,180,0.8)] hover:bg-red-500/10"
+                  : "border-red-400/40 text-[rgba(180,40,40,0.75)] hover:bg-red-50"
+              }`}
+            >
+              🗑 Delete
+            </button>
           </div>
         ) : null}
 
