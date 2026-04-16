@@ -29,23 +29,7 @@ export default function ProjectNode({
       role="button"
       tabIndex={0}
     >
-      <span className={isCreator ? "mb-0.5" : ""}>{project.title}</span>
-
-      {project.appCount > 0 ? (
-        <span className="absolute right-3 top-2.5 flex h-[26px] w-[26px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_30%,#d9a441,#a35c1e)] text-[0.7rem] font-semibold text-white shadow-[0_0_12px_rgba(255,165,60,0.65),0_0_24px_rgba(255,165,60,0.35)] animate-[applicationOrbPulse_3.5s_ease-in-out_infinite] max-md:right-1.5 max-md:top-1.5 max-md:h-5 max-md:w-5 max-md:text-[0.6rem]">
-          {project.appCount}
-        </span>
-      ) : null}
-
-      <div
-        className={`absolute right-3 top-2.5 h-2.5 w-2.5 rounded-full max-md:right-1.5 max-md:top-1.5 ${
-          project.status === "application"
-            ? "bg-[#ff9800]"
-            : project.status === "closed"
-              ? "bg-[#f44336]"
-              : "bg-[#4caf50]"
-        } ${project.appCount > 0 ? "opacity-0" : ""}`}
-      />
+      <span>{project.title}</span>
 
       {project.chinese_new_year ? (
         <div
@@ -56,14 +40,12 @@ export default function ProjectNode({
         </div>
       ) : null}
 
-      {/* Creator action buttons — visible on hover */}
+      {/* Creator action buttons — appear BELOW the bubble on hover, not on top of it */}
       {isCreator ? (
         <div
-          className="pointer-events-none absolute inset-0 flex items-end justify-center rounded-full pb-2 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
+          className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
         >
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {/* Complete */}
             <button
               type="button"
@@ -74,10 +56,10 @@ export default function ProjectNode({
                   onComplete?.(project);
                 }
               }}
-              className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.55rem] transition-all hover:scale-110 ${
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.55rem] transition-all hover:scale-125 ${
                 isVrisch
-                  ? "bg-emerald-500/30 text-emerald-200 hover:bg-emerald-500/50"
-                  : "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                  ? "bg-emerald-500/40 text-emerald-200 hover:bg-emerald-500/60"
+                  : "bg-emerald-200 text-emerald-800 hover:bg-emerald-300"
               }`}
             >
               ✓
@@ -92,10 +74,10 @@ export default function ProjectNode({
                   onArchive?.(project);
                 }
               }}
-              className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.55rem] transition-all hover:scale-110 ${
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.5rem] transition-all hover:scale-125 ${
                 isVrisch
-                  ? "bg-white/15 text-[rgba(230,225,215,0.8)] hover:bg-white/25"
-                  : "bg-stone-200/80 text-stone-700 hover:bg-stone-300"
+                  ? "bg-white/20 text-[rgba(230,225,215,0.8)] hover:bg-white/30"
+                  : "bg-stone-200 text-stone-700 hover:bg-stone-300"
               }`}
             >
               📦
@@ -110,10 +92,10 @@ export default function ProjectNode({
                   onDelete?.(project);
                 }
               }}
-              className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.55rem] transition-all hover:scale-110 ${
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.5rem] transition-all hover:scale-125 ${
                 isVrisch
-                  ? "bg-red-500/20 text-red-200 hover:bg-red-500/40"
-                  : "bg-red-100/80 text-red-700 hover:bg-red-200"
+                  ? "bg-red-500/30 text-red-200 hover:bg-red-500/50"
+                  : "bg-red-100 text-red-700 hover:bg-red-200"
               }`}
             >
               🗑
