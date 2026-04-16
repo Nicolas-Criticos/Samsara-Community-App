@@ -21,4 +21,6 @@ export const queryKeys = {
     projectId,
     userId,
   ],
+  /** Bill of Materials items for a project */
+  bomItems: (projectId) => ["bomItems", projectId],
 };
