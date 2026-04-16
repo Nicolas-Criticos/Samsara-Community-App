@@ -313,6 +313,8 @@ export function useProjectDetailPage() {
       inspiration_link,
       chinese_new_year,
       roles_needed,
+      start_date,
+      end_date,
     }) => {
       if (!project) return { error: "No project" };
       const t = title.trim();
@@ -338,6 +340,8 @@ export function useProjectDetailPage() {
         chinese_new_year: isVrisch ? false : Boolean(chinese_new_year),
         roles_needed: roles_needed?.trim() || null,
         image_url,
+        start_date: start_date || null,
+        end_date: end_date || null,
       };
 
       if (project.created_by === currentUserId) {
