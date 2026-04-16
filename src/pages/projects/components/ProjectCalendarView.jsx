@@ -44,7 +44,6 @@ function dateKey(date) {
 function parseLocalDate(val) {
   if (!val) return null;
   if (val instanceof Date) {
-    // strip time
     const d = new Date(val.getFullYear(), val.getMonth(), val.getDate());
     return Number.isNaN(d.getTime()) ? null : d;
   }
@@ -59,35 +58,29 @@ function parseLocalDate(val) {
 
 // ─── Status chip colours ──────────────────────────────────────────────────────
 
-function getChipBgClass(project, isVrisch, isContinuation = false) {
-  const s = (project.status ?? "").toLowerCase();
-  const archived = project.archived;
-
-  if (archived || s === "closed") {
+function getChipBgClass(project, isVrisch) {
+  if (project.archived) {
     return isVrisch ? "bg-stone-700/70" : "bg-stone-300";
   }
-  if (s === "open") {
-    return isVrisch ? "bg-emerald-800/70" : "bg-emerald-300";
+  if (project.completed_at) {
+    return isVrisch ? "bg-stone-600/60" : "bg-stone-200";
   }
-  if (s === "application") {
-    return isVrisch ? "bg-amber-700/70" : "bg-amber-300";
-  }
+  const s = (project.status ?? "").toLowerCase();
+  if (s === "open") return isVrisch ? "bg-emerald-800/70" : "bg-emerald-300";
+  if (s === "application") return isVrisch ? "bg-amber-700/70" : "bg-amber-300";
   return isVrisch ? "bg-white/15" : "bg-stone-200";
 }
 
 function getChipTextClass(project, isVrisch) {
-  const s = (project.status ?? "").toLowerCase();
-  const archived = project.archived;
-
-  if (archived || s === "closed") {
+  if (project.archived) {
     return isVrisch ? "text-stone-300" : "text-stone-600";
   }
-  if (s === "open") {
-    return isVrisch ? "text-emerald-200" : "text-emerald-900";
+  if (project.completed_at) {
+    return isVrisch ? "text-stone-400" : "text-stone-500";
   }
-  if (s === "application") {
-    return isVrisch ? "text-amber-200" : "text-amber-900";
-  }
+  const s = (project.status ?? "").toLowerCase();
+  if (s === "open") return isVrisch ? "text-emerald-200" : "text-emerald-900";
+  if (s === "application") return isVrisch ? "text-amber-200" : "text-amber-900";
   return isVrisch ? "text-white/60" : "text-stone-600";
 }
 
@@ -110,9 +103,6 @@ function buildCalendarDays(year, month) {
 }
 
 // ─── Bucket projects by span (start_date → end_date) ─────────────────────────
-//
-// Each entry in the map is an array of { project, isFirst } objects.
-// isFirst = true only on the first day of the project's span.
 
 function bucketProjectsBySpan(projects) {
   /** @type {Map<string, Array<{project: object, isFirst: boolean}>>} */
@@ -124,7 +114,6 @@ function bucketProjectsBySpan(projects) {
   }
 
   for (const p of projects) {
-    // Resolve start date: prefer start_date, fall back to created_at
     const startRaw = p.start_date ?? p.created_at;
     const start = parseLocalDate(startRaw);
     if (!start) continue;
@@ -132,12 +121,10 @@ function bucketProjectsBySpan(projects) {
     const end = parseLocalDate(p.end_date);
 
     if (!end || isSameDay(start, end)) {
-      // Single day
       addToKey(dateKey(start), p, true);
       continue;
     }
 
-    // Span — iterate day by day
     const cursor = new Date(start);
     let isFirst = true;
     while (cursor <= end) {
@@ -200,11 +187,10 @@ function DayCell({ date, entriesForDay, isVrisch, onProjectClick }) {
       {/* Project chips / continuation bars */}
       <div className="flex flex-col gap-0.5">
         {visibleEntries.map(({ project, isFirst }) => {
-          const bgClass = getChipBgClass(project, isVrisch, !isFirst);
+          const bgClass = getChipBgClass(project, isVrisch);
           const textClass = getChipTextClass(project, isVrisch);
 
           if (!isFirst) {
-            // Continuation: thin coloured bar, no text
             return (
               <button
                 key={project.id}
@@ -216,7 +202,6 @@ function DayCell({ date, entriesForDay, isVrisch, onProjectClick }) {
             );
           }
 
-          // First day: full chip with title
           return (
             <button
               key={project.id}
@@ -250,8 +235,14 @@ export default function ProjectCalendarView({ projects, isVrisch, onProjectClick
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
 
+  // Show active + completed (past) projects; exclude archived
+  const visibleProjects = useMemo(
+    () => projects.filter((p) => !p.archived),
+    [projects]
+  );
+
   const calendarDays = useMemo(() => buildCalendarDays(year, month), [year, month]);
-  const projectBucket = useMemo(() => bucketProjectsBySpan(projects), [projects]);
+  const projectBucket = useMemo(() => bucketProjectsBySpan(visibleProjects), [visibleProjects]);
 
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear((y) => y - 1); }
