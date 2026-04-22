@@ -103,21 +103,7 @@ export default function ProjectDetailModal({
           </IconButton>
         ) : null}
 
-        {isDetailCreator ? (
-          <div className="my-1" id="projectStatusControl">
-            <select
-              className="cursor-pointer appearance-none rounded-full border-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.95),rgba(230,225,215,0.85))] px-5 py-2 text-[0.7rem] uppercase tracking-[0.18em] text-[rgba(60,50,40,0.75)] transition-[filter] duration-200 hover:brightness-[1.05]"
-              value={project.status}
-              onChange={(e) => onStatusChange(e.target.value, project)}
-            >
-              <option value="open">🟢 Open</option>
-              <option value="application">🟠 Application</option>
-              <option value="closed">🔴 Closed</option>
-            </select>
-          </div>
-        ) : (
-          <div id="projectStatusControl" />
-        )}
+        <div id="projectStatusControl" />
 
         <div
           className={`text-[0.8rem] ${
@@ -129,42 +115,7 @@ export default function ProjectDetailModal({
           <div>{detailRoles}</div>
         </div>
 
-        {applicationBanner ? (
-          <div
-            className="cursor-pointer rounded-full bg-amber-100/90 px-4 py-2 text-center text-[0.7rem] uppercase tracking-wider text-amber-950 shadow-sm transition-transform hover:scale-[1.02]"
-            onClick={() =>
-              onHandleApplications(
-                applicationBanner.apps,
-                applicationBanner.nameMap,
-                applicationBanner.projectId
-              )
-            }
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onHandleApplications(
-                  applicationBanner.apps,
-                  applicationBanner.nameMap,
-                  applicationBanner.projectId
-                );
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            🟠 {applicationBanner.apps.length} application(s) pending
-          </div>
-        ) : null}
 
-        {showEndProject && project.created_by === currentUserId ? (
-          <button
-            type="button"
-            className="cursor-pointer rounded-full border border-[rgba(120,90,60,0.35)] bg-transparent px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] text-[rgba(120,90,60,0.85)] shadow-none transition-all duration-250 ease-in-out hover:scale-105 max-md:mt-2.5 max-md:inline-flex max-md:w-full max-md:max-w-[280px] max-md:justify-center"
-            onClick={() => onEndProject(project)}
-          >
-            End Project
-          </button>
-        ) : null}
 
         {viewMoreTo ? (
           <Link
