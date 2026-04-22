@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase.js";
 import { uploadReviewPhoto } from "../../../lib/storage.js";
+import { fetchBomItems } from "../../../lib/projectBomApi.js";
 
 function computeDuration(startDate, endDate) {
   if (!startDate) return null;
@@ -14,6 +15,13 @@ function computeDuration(startDate, endDate) {
   if (weeks < 5) return `${weeks} week${weeks !== 1 ? "s" : ""}`;
   const months = Math.round(days / 30.44);
   return `${months} month${months !== 1 ? "s" : ""}`;
+}
+
+function formatRand(amount) {
+  return amount.toLocaleString("en-ZA", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 export default function ProjectReviewForm({ project, isVrisch, onAfterSave }) {
@@ -31,6 +39,7 @@ export default function ProjectReviewForm({ project, isVrisch, onAfterSave }) {
   const [photoFiles, setPhotoFiles] = useState([]);
   const [photoPreviews, setPhotoPreviews] = useState([]);
   const fileInputRef = useRef(null);
+  const [bomItems, setBomItems] = useState([]);
 
   useEffect(() => {
     if (!projectId) return;
@@ -45,6 +54,18 @@ export default function ProjectReviewForm({ project, isVrisch, onAfterSave }) {
         setLoading(false);
       });
   }, [projectId]);
+
+  useEffect(() => {
+    if (!project?.id) return;
+    fetchBomItems(project.id).then(({ data }) => {
+      if (data) setBomItems(data);
+    });
+  }, [project?.id]);
+
+  const totalCost = bomItems.reduce(
+    (sum, item) => sum + (item.quantity || 0) * (item.unit_cost || 0),
+    0
+  );
 
   function handlePhotoChange(e) {
     const files = Array.from(e.target.files || []);
@@ -90,6 +111,73 @@ export default function ProjectReviewForm({ project, isVrisch, onAfterSave }) {
   const headingClass = `text-[0.75rem] uppercase tracking-[0.2em] mb-8 ${
     isVrisch ? "text-[rgba(235,230,220,0.7)]" : "text-[rgba(43,43,43,0.6)]"
   }`;
+
+  const rowBorder = isVrisch
+    ? "border-white/8"
+    : "border-[rgba(90,70,50,0.1)]";
+
+  const bodyText = isVrisch
+    ? "text-[rgba(220,215,205,0.88)]"
+    : "text-[rgba(43,43,43,0.82)]";
+
+  const bomSection = (
+    <div className="space-y-5">
+      <div>
+        <span className={labelClass}>Bill of Materials</span>
+        {bomItems.length === 0 ? (
+          <p className={`text-[0.8rem] ${muted}`}>
+            No bill of materials recorded for this project.
+          </p>
+        ) : (
+          <div className="mt-2">
+            <div
+              className={`grid grid-cols-4 gap-x-3 pb-1.5 text-[0.6rem] uppercase tracking-widest border-b ${rowBorder} ${muted}`}
+            >
+              <span>Name</span>
+              <span className="text-right">Qty</span>
+              <span className="text-right">Unit Cost</span>
+              <span className="text-right">Total</span>
+            </div>
+            {bomItems.map((item) => {
+              const lineTotal = (item.quantity || 0) * (item.unit_cost || 0);
+              return (
+                <div
+                  key={item.id}
+                  className={`grid grid-cols-4 gap-x-3 py-2 text-[0.82rem] border-b ${rowBorder} ${bodyText}`}
+                >
+                  <span className="truncate">{item.name}</span>
+                  <span className="text-right">{item.quantity ?? 0}</span>
+                  <span className="text-right">
+                    R {formatRand(item.unit_cost ?? 0)}
+                  </span>
+                  <span className="text-right">R {formatRand(lineTotal)}</span>
+                </div>
+              );
+            })}
+            <div className={`pt-2 text-right text-[0.65rem] uppercase tracking-widest ${muted}`}>
+              Total:{" "}
+              <span
+                className={`text-[1.1rem] tracking-wide ${bodyText}`}
+                style={{ fontFamily: "'Cormorant Garamond', Cormorant, serif" }}
+              >
+                R {formatRand(totalCost)}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <span className={labelClass}>Project Cost</span>
+        <p
+          className={`text-[1.6rem] leading-none ${bodyText}`}
+          style={{ fontFamily: "'Cormorant Garamond', Cormorant, serif" }}
+        >
+          R {formatRand(totalCost)}
+        </p>
+      </div>
+    </div>
+  );
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -163,6 +251,7 @@ export default function ProjectReviewForm({ project, isVrisch, onAfterSave }) {
         {divider}
         <div className="space-y-6">
           <h2 className={headingClass}>Completion Review</h2>
+          {bomSection}
           {readFields.map(({ label, value }) =>
             value ? (
               <div key={label}>
@@ -218,6 +307,7 @@ export default function ProjectReviewForm({ project, isVrisch, onAfterSave }) {
             </p>
           </div>
         ) : null}
+        <div className="mb-7">{bomSection}</div>
         <form onSubmit={handleSubmit} className="space-y-7">
           <div>
             <label className={labelClass}>
