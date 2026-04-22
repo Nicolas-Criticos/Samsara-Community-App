@@ -154,25 +154,6 @@ export default function ProjectCreateModal({
           disabled={pending}
         />
 
-        <div
-          className={`flex flex-col gap-2 text-left text-[0.72rem] ${
-            isVrisch ? "text-[rgba(225,220,210,0.85)]" : "text-[rgba(43,43,43,0.75)]"
-          }`}
-        >
-          <label className="flex cursor-pointer items-center gap-2">
-            <input type="radio" value="open" disabled={pending} {...register("status")} />
-            🟢 Open contribution
-          </label>
-          <label className="flex cursor-pointer items-center gap-2">
-            <input type="radio" value="application" disabled={pending} {...register("status")} />
-            🟠 By application
-          </label>
-          <label className="flex cursor-pointer items-center gap-2">
-            <input type="radio" value="closed" disabled={pending} {...register("status")} />
-            🔴 Closed
-          </label>
-        </div>
-
         {!isVrisch ? (
           <>
             <label className="cursor-pointer text-[0.7rem] uppercase tracking-[0.14em] opacity-75">

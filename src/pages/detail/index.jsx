@@ -14,6 +14,7 @@ import ProjectDetailMenu from "./components/ProjectDetailMenu.jsx";
 import ProjectEditModal from "./components/ProjectEditModal.jsx";
 import ProjectBomPanel from "./components/ProjectBomPanel.jsx";
 import ProjectTaskModal from "./components/ProjectTaskModal.jsx";
+import ProjectReviewForm from "./components/ProjectReviewForm.jsx";
 import { useProjectDetailPage } from "./hooks/useProjectDetailPage.js";
 
 function formatWhen(iso) {
@@ -547,6 +548,10 @@ export default function ProjectDetailPage() {
             ))
           )}
         </ul>
+
+        {project.completed_at ? (
+          <ProjectReviewForm projectId={project.id} isVrisch={isVrisch} />
+        ) : null}
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-[0.75rem] uppercase tracking-[0.2em]">

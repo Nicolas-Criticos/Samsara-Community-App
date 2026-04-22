@@ -75,7 +75,7 @@ export default function ProjectsPage() {
       ) : viewMode === "calendar" ? (
         <ProjectCalendarView projects={pf.projects} isVrisch={pf.isVrisch} />
       ) : viewMode === "gantt" ? (
-        <ProjectGanttView projects={pf.projects} isVrisch={pf.isVrisch} onProjectClick={pf.openProjectDetail} />
+        <ProjectGanttView projects={pf.projects} isVrisch={pf.isVrisch} realm={pf.realm} />
       ) : (
         <div className="fixed inset-0 z-2" id="projectField">
           {pf.fieldProjects.slice(0, pf.visibleCount).map((project, i) => (
