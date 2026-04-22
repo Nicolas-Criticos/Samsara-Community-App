@@ -61,3 +61,14 @@ export async function uploadProjectActivityImageFile(projectId, subfolder, file)
   if (error) return { error, url: null };
   return { error: null, url: publicObjectUrl(STORAGE_BUCKETS.projectImages, path) };
 }
+
+/** Review photos scoped under a project id. Throws on error. */
+export async function uploadReviewPhoto(projectId, file) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  const path = `reviews/${projectId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKETS.projectImages)
+    .upload(path, file, { cacheControl: "3600", upsert: false });
+  if (error) throw error;
+  return publicObjectUrl(STORAGE_BUCKETS.projectImages, path);
+}

@@ -1,7 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase.js";
+import { uploadReviewPhoto } from "../../../lib/storage.js";
 
-export default function ProjectReviewForm({ projectId, isVrisch }) {
+function computeDuration(startDate, endDate) {
+  if (!startDate) return null;
+  const start = new Date(startDate);
+  const end = endDate ? new Date(endDate) : new Date();
+  const diffMs = end - start;
+  if (diffMs <= 0) return null;
+  const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  if (days < 7) return `${days} day${days !== 1 ? "s" : ""}`;
+  const weeks = Math.round(days / 7);
+  if (weeks < 5) return `${weeks} week${weeks !== 1 ? "s" : ""}`;
+  const months = Math.round(days / 30.44);
+  return `${months} month${months !== 1 ? "s" : ""}`;
+}
+
+export default function ProjectReviewForm({ project, isVrisch, onAfterSave }) {
+  const projectId = project?.id;
   const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -10,11 +26,11 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
     successes: "",
     learning_curves: "",
     rooms_to_improve: "",
-    duration_notes: "",
-    total_cost: "",
-    bom_summary: "",
     overall_rating: 7,
   });
+  const [photoFiles, setPhotoFiles] = useState([]);
+  const [photoPreviews, setPhotoPreviews] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!projectId) return;
@@ -29,6 +45,31 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
         setLoading(false);
       });
   }, [projectId]);
+
+  function handlePhotoChange(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setPhotoFiles((prev) => [...prev, ...files]);
+    setPhotoPreviews((prev) => [
+      ...prev,
+      ...files.map((f) => URL.createObjectURL(f)),
+    ]);
+    // Reset so the same file can be re-added if removed
+    e.target.value = "";
+  }
+
+  function removePhoto(index) {
+    setPhotoFiles((prev) => prev.filter((_, i) => i !== index));
+    setPhotoPreviews((prev) => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  const duration = computeDuration(
+    project?.start_date,
+    project?.completed_at
+  );
 
   const muted = isVrisch
     ? "text-[rgba(200,195,185,0.55)]"
@@ -45,7 +86,6 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
     : "text-[rgba(43,43,43,0.86)] placeholder:text-[rgba(75,71,65,0.28)]";
 
   const textareaClass = `w-full resize-none bg-transparent border-0 border-b py-1.5 text-[0.88rem] leading-relaxed focus:outline-none transition-colors ${fieldBorder} ${fieldText}`;
-  const inputClass = `w-full bg-transparent border-0 border-b py-1.5 text-[0.88rem] focus:outline-none transition-colors ${fieldBorder} ${fieldText}`;
 
   const headingClass = `text-[0.75rem] uppercase tracking-[0.2em] mb-8 ${
     isVrisch ? "text-[rgba(235,230,220,0.7)]" : "text-[rgba(43,43,43,0.6)]"
@@ -58,6 +98,17 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
       return;
     }
     setSaving(true);
+
+    const photoUrls = [];
+    for (const file of photoFiles) {
+      try {
+        const url = await uploadReviewPhoto(projectId, file);
+        photoUrls.push(url);
+      } catch (err) {
+        console.warn("Photo upload failed:", err);
+      }
+    }
+
     const { data, error } = await supabase
       .from("project_reviews")
       .insert({
@@ -66,19 +117,19 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
         successes: form.successes.trim() || null,
         learning_curves: form.learning_curves.trim() || null,
         rooms_to_improve: form.rooms_to_improve.trim() || null,
-        duration_notes: form.duration_notes.trim() || null,
-        total_cost: form.total_cost !== "" ? Number(form.total_cost) : null,
-        bom_summary: form.bom_summary.trim() || null,
         overall_rating: Number(form.overall_rating),
+        photos: photoUrls.length > 0 ? photoUrls : null,
       })
       .select()
       .single();
+
     setSaving(false);
     if (error) {
       alert("Failed to save review: " + error.message);
       return;
     }
     setReview(data);
+    if (onAfterSave) onAfterSave();
   }
 
   if (loading) return null;
@@ -97,15 +148,7 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
       { label: "Successes", value: review.successes },
       { label: "Learning Curves", value: review.learning_curves },
       { label: "Rooms to Improve", value: review.rooms_to_improve },
-      { label: "Duration", value: review.duration_notes },
-      {
-        label: "Total Cost (ZAR)",
-        value:
-          review.total_cost != null
-            ? `R ${Number(review.total_cost).toLocaleString()}`
-            : null,
-      },
-      { label: "BOM Summary", value: review.bom_summary },
+      ...(duration ? [{ label: "Duration", value: duration }] : []),
       {
         label: "Overall Rating",
         value:
@@ -136,6 +179,21 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
               </div>
             ) : null
           )}
+          {review.photos?.length > 0 ? (
+            <div>
+              <span className={labelClass}>Photos</span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {review.photos.map((url, i) => (
+                  <img
+                    key={i}
+                    src={url}
+                    alt=""
+                    className="h-20 w-20 rounded-lg object-cover"
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </>
     );
@@ -146,6 +204,20 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
       {divider}
       <div>
         <h2 className={headingClass}>Completion Review</h2>
+        {duration ? (
+          <div className="mb-7">
+            <span className={labelClass}>Duration</span>
+            <p
+              className={`text-[0.88rem] ${
+                isVrisch
+                  ? "text-[rgba(220,215,205,0.88)]"
+                  : "text-[rgba(43,43,43,0.82)]"
+              }`}
+            >
+              {duration}
+            </p>
+          </div>
+        ) : null}
         <form onSubmit={handleSubmit} className="space-y-7">
           <div>
             <label className={labelClass}>
@@ -207,54 +279,6 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
 
           <div>
             <label className={labelClass}>
-              Duration — How long did it take?
-            </label>
-            <input
-              type="text"
-              className={inputClass}
-              placeholder="e.g. 3 months"
-              value={form.duration_notes}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, duration_notes: e.target.value }))
-              }
-              disabled={saving}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>
-              Total Cost — Estimated total spend (ZAR)
-            </label>
-            <input
-              type="number"
-              className={inputClass}
-              placeholder="0"
-              min="0"
-              value={form.total_cost}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, total_cost: e.target.value }))
-              }
-              disabled={saving}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>
-              BOM Summary — Key materials and costs
-            </label>
-            <textarea
-              className={`${textareaClass} min-h-[56px]`}
-              placeholder="List of key materials…"
-              value={form.bom_summary}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, bom_summary: e.target.value }))
-              }
-              disabled={saving}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>
               Overall Rating — {form.overall_rating} / 10
             </label>
             <input
@@ -274,6 +298,51 @@ export default function ProjectReviewForm({ projectId, isVrisch }) {
               <span>1</span>
               <span>10</span>
             </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Photos (optional)</label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoChange}
+              disabled={saving}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={saving}
+              className={`rounded-lg border px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.12em] transition-all hover:opacity-80 disabled:opacity-40 ${
+                isVrisch
+                  ? "border-white/15 text-[rgba(220,215,205,0.7)]"
+                  : "border-[rgba(90,70,50,0.2)] text-[rgba(43,43,43,0.65)]"
+              }`}
+            >
+              Add photos
+            </button>
+            {photoPreviews.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {photoPreviews.map((src, i) => (
+                  <div key={i} className="relative">
+                    <img
+                      src={src}
+                      alt=""
+                      className="h-16 w-16 rounded-lg object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[0.55rem] text-white"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <button

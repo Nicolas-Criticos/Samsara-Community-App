@@ -149,6 +149,8 @@ export default function ProjectDetailPage() {
     deleteProject,
   } = useProjectDetailPage();
 
+  const [showCompletionPrompt, setShowCompletionPrompt] = useState(false);
+  const [showCompletionReviewForm, setShowCompletionReviewForm] = useState(false);
   const [updFile, setUpdFile] = useState(null);
   const creatorUpdateForm = useForm({
     defaultValues: { title: "", description: "" },
@@ -265,7 +267,7 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className={`${pageBg} px-4 py-10 pb-16 max-md:px-3 max-md:py-6`}>
+    <div className={`${pageBg} overflow-y-auto px-4 py-10 pb-16 max-md:px-3 max-md:py-6`}>
       <div className="mx-auto max-w-2xl">
         <button
           type="button"
@@ -550,14 +552,24 @@ export default function ProjectDetailPage() {
         </ul>
 
         {project.completed_at ? (
-          <ProjectReviewForm projectId={project.id} isVrisch={isVrisch} />
+          <ProjectReviewForm project={project} isVrisch={isVrisch} />
+        ) : null}
+        {showCompletionReviewForm ? (
+          <ProjectReviewForm
+            project={project}
+            isVrisch={isVrisch}
+            onAfterSave={() => {
+              setShowCompletionReviewForm(false);
+              completeProject();
+            }}
+          />
         ) : null}
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-[0.75rem] uppercase tracking-[0.2em]">
             Activity
           </h2>
-          {showContributorAddUpdate ? (
+          {showContributorAddUpdate && !project.completed_at ? (
             <button
               type="button"
               className={`shrink-0 cursor-pointer rounded-full border-2 px-5 py-2 text-[0.62rem] uppercase tracking-[0.18em] transition-all duration-250 ease-in-out hover:scale-[1.02] ${
@@ -571,7 +583,7 @@ export default function ProjectDetailPage() {
             </button>
           ) : null}
         </div>
-        {showContributorAddUpdate ? (
+        {showContributorAddUpdate && !project.completed_at ? (
           <ProjectAddUpdateModal
             open={addUpdateOpen}
             onClose={() => setAddUpdateOpen(false)}
@@ -719,7 +731,7 @@ export default function ProjectDetailPage() {
           <div className="mt-10 flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={completeProject}
+              onClick={() => setShowCompletionPrompt(true)}
               className={`cursor-pointer rounded-full border px-4 py-2 text-[0.6rem] uppercase tracking-[0.16em] transition-all hover:scale-[1.02] ${
                 isVrisch
                   ? "border-emerald-500/35 text-[rgba(180,230,180,0.85)] hover:bg-emerald-500/10"
@@ -758,6 +770,73 @@ export default function ProjectDetailPage() {
         projectId={project?.id}
         isVrisch={isVrisch}
       />
+
+      {showCompletionPrompt ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className={`mx-4 w-full max-w-sm rounded-2xl p-6 shadow-2xl ${
+              isVrisch
+                ? "border border-white/15 bg-[rgba(22,22,22,0.97)]"
+                : "border border-[rgba(90,70,50,0.12)] bg-white"
+            }`}
+          >
+            <h3
+              className={`mb-2 text-[0.9rem] font-medium ${
+                isVrisch
+                  ? "text-[rgba(235,230,220,0.92)]"
+                  : "text-[#2b2b2b]"
+              }`}
+            >
+              Complete project
+            </h3>
+            <p className={`mb-6 text-[0.82rem] leading-relaxed ${muted}`}>
+              Would you like to write a completion review before closing this
+              project?
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCompletionPrompt(false);
+                  setShowCompletionReviewForm(true);
+                }}
+                className={`cursor-pointer rounded-full border px-4 py-2 text-[0.62rem] uppercase tracking-[0.16em] transition-all hover:scale-[1.02] ${
+                  isVrisch
+                    ? "border-[rgba(200,190,160,0.45)] bg-white/8 text-[rgba(240,235,225,0.92)] hover:bg-white/12"
+                    : "border-[rgba(100,85,65,0.4)] bg-white/50 text-[rgba(55,48,38,0.9)] hover:bg-white/80"
+                }`}
+              >
+                Write Review
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCompletionPrompt(false);
+                  completeProject();
+                }}
+                className={`cursor-pointer rounded-full border px-4 py-2 text-[0.62rem] uppercase tracking-[0.16em] transition-all hover:scale-[1.02] ${
+                  isVrisch
+                    ? "border-emerald-500/35 text-[rgba(180,230,180,0.85)] hover:bg-emerald-500/10"
+                    : "border-emerald-600/35 text-[rgba(40,120,40,0.85)] hover:bg-emerald-50"
+                }`}
+              >
+                Skip
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCompletionPrompt(false)}
+                className={`cursor-pointer rounded-full border px-4 py-2 text-[0.62rem] uppercase tracking-[0.16em] transition-all hover:scale-[1.02] ${
+                  isVrisch
+                    ? "border-white/15 text-[rgba(200,195,185,0.6)] hover:bg-white/8"
+                    : "border-[rgba(90,70,50,0.15)] text-[rgba(60,55,45,0.55)] hover:bg-black/5"
+                }`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
