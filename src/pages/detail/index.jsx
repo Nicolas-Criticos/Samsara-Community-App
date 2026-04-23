@@ -685,7 +685,7 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
-        {isCreator ? (
+        {isCreator && !project.completed_at ? (
           <div className="mt-12 space-y-8">
             <h2 className="text-[0.75rem] uppercase tracking-[0.2em]">
               Add to this project
