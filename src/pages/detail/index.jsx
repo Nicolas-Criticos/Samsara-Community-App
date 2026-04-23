@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Button,
   IconButton,
@@ -105,9 +105,9 @@ function isTaskCompletedStatus(status) {
 
 export default function ProjectDetailPage() {
   useEffect(() => {
-    document.body.style.overflow = "";
+    document.body.style.overflow = "auto";
     document.body.style.position = "";
-    document.documentElement.style.overflow = "";
+    document.documentElement.style.overflow = "auto";
     return () => {
       document.body.style.overflow = "";
       document.body.style.position = "";
@@ -149,8 +149,17 @@ export default function ProjectDetailPage() {
     deleteProject,
   } = useProjectDetailPage();
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showCompletionPrompt, setShowCompletionPrompt] = useState(false);
   const [showCompletionReviewForm, setShowCompletionReviewForm] = useState(false);
+
+  // Auto-trigger completion prompt from bubble ?complete=true
+  useEffect(() => {
+    if (searchParams.get('complete') === 'true' && !showCompletionPrompt) {
+      setShowCompletionPrompt(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams]);
   const [updFile, setUpdFile] = useState(null);
   const creatorUpdateForm = useForm({
     defaultValues: { title: "", description: "" },

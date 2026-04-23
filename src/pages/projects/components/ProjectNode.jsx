@@ -1,3 +1,6 @@
+import { useNavigate, useParams } from "react-router-dom";
+import { slugifyProjectTitle } from "../../../lib/slug.js";
+
 export default function ProjectNode({
   project,
   x,
@@ -9,6 +12,8 @@ export default function ProjectNode({
   onArchive,
   onDelete,
 }) {
+  const navigate = useNavigate();
+  const { realm } = useParams();
   const isCreator = Boolean(currentUserId && project.created_by === currentUserId);
 
   return (
@@ -52,9 +57,8 @@ export default function ProjectNode({
               title="Complete project"
               onClick={(e) => {
                 e.stopPropagation();
-                if (confirm("Mark this project as completed?")) {
-                  onComplete?.(project);
-                }
+                const slug = slugifyProjectTitle(project.title);
+                navigate(`/projects/${realm}/${slug}?complete=true`);
               }}
               className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.55rem] transition-all hover:scale-125 ${
                 isVrisch
