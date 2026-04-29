@@ -8,7 +8,7 @@ export default function RealmSwitch({
     <div
       className={`fixed right-7 top-6 z-10 flex flex-col items-end gap-2 max-md:left-1/2 max-md:right-auto max-md:top-4 max-md:-translate-x-1/2 max-md:items-center ${
         isVrisch
-          ? "text-[rgba(230,225,215,0.8)]"
+          ? "text-[rgba(80,60,25,0.9)]"
           : "text-[rgba(43,43,43,0.6)]"
       }`}
     >
@@ -44,7 +44,7 @@ export default function RealmSwitch({
         <span
           className={`transition-opacity duration-300 ease-in-out ${
             isVrisch
-              ? "text-[rgba(255,250,240,1)] opacity-100"
+              ? "text-[rgba(80,60,25,1)] opacity-100 font-medium"
               : "opacity-50"
           }`}
         >
@@ -61,8 +61,8 @@ export default function RealmSwitch({
             className={`cursor-pointer text-[0.62rem] uppercase tracking-[0.16em] transition-all rounded-full px-2.5 py-[0.28rem] ${
               isVrisch
                 ? viewMode === mode
-                  ? "bg-[rgba(180,128,48,0.22)] border border-[rgba(205,158,60,0.48)] text-[rgba(255,228,168,0.96)] shadow-[0_0_8px_rgba(185,138,50,0.18),inset_0_1px_3px_rgba(255,220,140,0.12)]"
-                  : "bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.09)] text-[rgba(200,190,174,0.5)] hover:bg-[rgba(255,255,255,0.09)] hover:text-[rgba(225,215,198,0.78)] hover:border-[rgba(255,255,255,0.16)]"
+                  ? "bg-[rgba(140,108,45,0.18)] border border-[rgba(130,98,35,0.6)] text-[rgba(75,52,12,1)] shadow-[inset_0_1px_3px_rgba(255,220,140,0.2),0_2px_8px_rgba(140,108,45,0.12)] font-semibold"
+                  : "bg-[rgba(255,255,255,0.55)] border border-[rgba(150,120,70,0.4)] text-[rgba(85,62,22,0.8)] hover:bg-[rgba(255,255,255,0.75)] hover:text-[rgba(75,52,12,1)] hover:border-[rgba(130,98,35,0.6)]"
                 : viewMode === mode
                   ? "opacity-100 underline underline-offset-2 text-[rgba(43,43,43,0.68)]"
                   : "opacity-50 text-[rgba(43,43,43,0.68)] hover:opacity-100"

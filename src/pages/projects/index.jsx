@@ -21,13 +21,14 @@ export default function ProjectsPage() {
     <div
       className={`flex min-h-screen w-screen max-w-[100vw] items-center justify-center overflow-hidden isolate ${
         pf.isVrisch
-          ? "fixed inset-0 z-0 [@media(max-width:1024px)_and_(orientation:landscape)]:h-full bg-[radial-gradient(ellipse_at_center,rgba(255,252,242,1)_0%,rgba(245,238,220,1)_35%,rgba(228,218,198,1)_65%,rgba(210,198,175,1)_100%)]"
+          ? "fixed inset-0 z-0 [@media(max-width:1024px)_and_(orientation:landscape)]:h-full bg-[radial-gradient(ellipse_at_center,rgba(255,253,248,1)_0%,rgba(252,246,232,1)_25%,rgba(242,232,210,1)_55%,rgba(225,212,188,1)_80%,rgba(208,194,168,1)_100%)]"
           : "relative h-screen [@media(max-width:1024px)_and_(orientation:landscape)]:h-full bg-[radial-gradient(circle_at_center,rgba(225,214,193,0.92)_0%,rgba(223,214,199,0.94)_38%,rgba(241,235,222,0.97)_68%,rgba(255,252,245,0.99)_100%)] max-md:pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]"
       }`}
       style={
         pf.isVrisch
           ? {
-              backgroundImage: `radial-gradient(circle at center, rgba(255,252,245,0.15) 0%, rgba(240,235,220,0.55) 40%, rgba(220,210,190,0.82) 100%), url(${vgLogoUrl})`,
+              backgroundImage: `radial-gradient(circle at center, rgba(255,250,235,0.0) 0%, rgba(235,222,195,0.45) 45%, rgba(215,200,172,0.85) 100%), url(${vgLogoUrl})`,
+              filter: "none",
               backgroundSize: "auto, 38%",
               backgroundPosition: "center, center",
               backgroundRepeat: "no-repeat, no-repeat",
@@ -49,7 +50,7 @@ export default function ProjectsPage() {
           <div
             className="pointer-events-none fixed inset-0 z-1"
             style={{
-              background: "radial-gradient(circle at center, rgba(200,175,110,0.22) 0%, rgba(180,155,90,0.1) 20%, transparent 45%)",
+              background: "radial-gradient(circle at center, rgba(255,248,220,0.9) 0%, rgba(245,232,190,0.65) 15%, rgba(230,215,170,0.35) 32%, transparent 55%)",
             }}
             aria-hidden
           />
