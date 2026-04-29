@@ -1,8 +1,12 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { slugifyProjectTitle } from "../../../lib/slug.js";
 
+// Size variation — natural hierarchy without sorting
+const BUBBLE_SIZES = [112, 96, 108, 100, 118, 94, 104, 110, 98, 106];
+
 export default function ProjectNode({
   project,
+  index,
   x,
   y,
   isVrisch,
@@ -15,20 +19,33 @@ export default function ProjectNode({
   const navigate = useNavigate();
   const { realm } = useParams();
   const isCreator = Boolean(currentUserId && project.created_by === currentUserId);
+
+  // Stagger breath animation per bubble
   const breathOffset = isVrisch && project.id
     ? `${((project.id.codePointAt(0) ?? 48) % 8) * 0.75}s`
     : "0s";
 
+  // Vary bubble size for vrisch field view
+  const size = isVrisch ? (BUBBLE_SIZES[index % BUBBLE_SIZES.length] ?? 100) : null;
+  const fontSize = size
+    ? size >= 110 ? "0.8rem" : size <= 96 ? "0.67rem" : "0.73rem"
+    : undefined;
+
   return (
     <div
-      className={`absolute flex h-[100px] w-[100px] cursor-pointer flex-col items-center justify-center rounded-full text-center text-[0.8rem] uppercase tracking-[0.12em] opacity-0 transition-all duration-450 ease-in-out hover:z-4 hover:scale-[1.12] max-md:h-20 max-md:w-20 max-md:text-[0.6rem] max-md:tracking-widest [@media(max-width:1024px)_and_(orientation:landscape)]:h-[90px] [@media(max-width:1024px)_and_(orientation:landscape)]:w-[90px] [@media(max-width:1024px)_and_(orientation:landscape)]:text-[0.65rem] group ${
+      className={`absolute flex cursor-pointer flex-col items-center justify-center rounded-full text-center uppercase tracking-[0.1em] opacity-0 transition-all duration-450 ease-in-out hover:z-4 hover:scale-[1.12] group ${
         isVrisch
-          ? "text-[rgba(80,65,42,0.88)] [text-shadow:0_1px_4px_rgba(0,0,0,0.85)] animate-[nodeFadeIn_3s_ease_forwards,nodeBreathVrisch_9s_ease-in-out_infinite] bg-[radial-gradient(circle_at_32%_28%,rgba(255,255,255,0.92)_0%,rgba(255,252,242,0.75)_15%,rgba(235,225,200,0.55)_38%,rgba(200,185,155,0.45)_60%,rgba(165,148,118,0.55)_80%,rgba(140,125,98,0.65)_100%)] shadow-[0_18px_45px_rgba(100,80,40,0.18),0_6px_16px_rgba(100,80,40,0.12),inset_0_-6px_14px_rgba(140,110,60,0.15),inset_0_3px_10px_rgba(255,255,255,0.7),inset_0_0_0_1px_rgba(255,255,255,0.45)] hover:brightness-[1.12] hover:shadow-[0_24px_60px_rgba(100,80,40,0.25),0_8px_20px_rgba(100,80,40,0.18),inset_0_-8px_18px_rgba(140,110,60,0.2),inset_0_4px_14px_rgba(255,255,255,0.85),inset_0_0_0_1px_rgba(255,255,255,0.55)]"
-          : "text-[rgba(43,43,43,0.75)] animate-[nodeFadeIn_3s_ease_forwards,nodeBreath_7s_ease-in-out_infinite] hover:brightness-[1.04] bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.9),rgba(230,225,215,0.6)_65%,rgba(210,205,195,0.45)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.08),inset_0_0_18px_rgba(255,255,255,0.6)] hover:shadow-[0_18px_45px_rgba(0,0,0,0.14),inset_0_0_22px_rgba(255,255,255,0.75)]"
+          ? "text-[rgba(72,54,28,0.92)] animate-[nodeFadeIn_3s_ease_forwards,nodeBreathVrisch_9s_ease-in-out_infinite] bg-[radial-gradient(circle_at_32%_28%,rgba(255,255,255,0.92)_0%,rgba(255,252,242,0.75)_15%,rgba(235,225,200,0.55)_38%,rgba(200,185,155,0.45)_60%,rgba(165,148,118,0.55)_80%,rgba(140,125,98,0.65)_100%)] shadow-[0_18px_45px_rgba(100,80,40,0.22),0_6px_16px_rgba(100,80,40,0.14),inset_0_-6px_14px_rgba(140,110,60,0.15),inset_0_3px_10px_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(255,255,255,0.5)] hover:brightness-[1.08] hover:shadow-[0_26px_65px_rgba(100,80,40,0.3),0_8px_22px_rgba(100,80,40,0.2),inset_0_-8px_18px_rgba(140,110,60,0.2),inset_0_4px_14px_rgba(255,255,255,0.88),inset_0_0_0_1px_rgba(255,255,255,0.6)]"
+          : "h-[100px] w-[100px] max-md:h-20 max-md:w-20 [@media(max-width:1024px)_and_(orientation:landscape)]:h-[90px] [@media(max-width:1024px)_and_(orientation:landscape)]:w-[90px] text-[0.8rem] max-md:text-[0.6rem] max-md:tracking-widest [@media(max-width:1024px)_and_(orientation:landscape)]:text-[0.65rem] text-[rgba(43,43,43,0.75)] animate-[nodeFadeIn_3s_ease_forwards,nodeBreath_7s_ease-in-out_infinite] hover:brightness-[1.04] bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.9),rgba(230,225,215,0.6)_65%,rgba(210,205,195,0.45)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.08),inset_0_0_18px_rgba(255,255,255,0.6)] hover:shadow-[0_18px_45px_rgba(0,0,0,0.14),inset_0_0_22px_rgba(255,255,255,0.75)]"
       }`}
       style={{
         left: `${x}px`,
         top: `${y}px`,
+        ...(isVrisch && size ? {
+          width: `${size}px`,
+          height: `${size}px`,
+          fontSize,
+        } : {}),
         ...(isVrisch ? { animationDelay: `0s, ${breathOffset}` } : {}),
       }}
       onClick={() => onOpen(project)}
@@ -41,7 +58,15 @@ export default function ProjectNode({
       role="button"
       tabIndex={0}
     >
-      <span style={isVrisch ? { fontFamily: "Cormorant Garamond, serif" } : undefined}>{project.title}</span>
+      <span style={isVrisch ? {
+        fontFamily: "'Cormorant Garamond', serif",
+        fontWeight: 500,
+        letterSpacing: "0.09em",
+        lineHeight: 1.25,
+        padding: "0 10px",
+      } : undefined}>
+        {project.title}
+      </span>
 
       {project.chinese_new_year ? (
         <div
@@ -52,13 +77,10 @@ export default function ProjectNode({
         </div>
       ) : null}
 
-      {/* Creator action buttons — appear BELOW the bubble on hover, not on top of it */}
+      {/* Creator action buttons — appear BELOW the bubble on hover */}
       {isCreator ? (
-        <div
-          className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-        >
+        <div className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100">
           <div className="flex items-center gap-1.5">
-            {/* Complete */}
             <button
               type="button"
               title="Complete project"
@@ -72,45 +94,33 @@ export default function ProjectNode({
                   ? "bg-emerald-500/40 text-emerald-200 hover:bg-emerald-500/60"
                   : "bg-emerald-200 text-emerald-800 hover:bg-emerald-300"
               }`}
-            >
-              ✓
-            </button>
-            {/* Archive */}
+            >✓</button>
             <button
               type="button"
               title="Archive project"
               onClick={(e) => {
                 e.stopPropagation();
-                if (confirm("Archive this project?")) {
-                  onArchive?.(project);
-                }
+                if (confirm("Archive this project?")) onArchive?.(project);
               }}
               className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.5rem] transition-all hover:scale-125 ${
                 isVrisch
                   ? "bg-white/20 text-[rgba(230,225,215,0.8)] hover:bg-white/30"
                   : "bg-stone-200 text-stone-700 hover:bg-stone-300"
               }`}
-            >
-              📦
-            </button>
-            {/* Delete */}
+            >📦</button>
             <button
               type="button"
               title="Delete project"
               onClick={(e) => {
                 e.stopPropagation();
-                if (confirm(`Permanently delete "${project.title}"? This cannot be undone.`)) {
-                  onDelete?.(project);
-                }
+                if (confirm(`Permanently delete "${project.title}"? This cannot be undone.`)) onDelete?.(project);
               }}
               className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.5rem] transition-all hover:scale-125 ${
                 isVrisch
                   ? "bg-red-500/30 text-red-200 hover:bg-red-500/50"
                   : "bg-red-100 text-red-700 hover:bg-red-200"
               }`}
-            >
-              🗑
-            </button>
+            >🗑</button>
           </div>
         </div>
       ) : null}

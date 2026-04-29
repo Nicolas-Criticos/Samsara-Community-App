@@ -21,14 +21,13 @@ export default function ProjectsPage() {
     <div
       className={`flex min-h-screen w-screen max-w-[100vw] items-center justify-center overflow-hidden isolate ${
         pf.isVrisch
-          ? "fixed inset-0 z-0 [@media(max-width:1024px)_and_(orientation:landscape)]:h-full bg-[radial-gradient(ellipse_at_center,rgba(255,253,248,1)_0%,rgba(252,246,232,1)_25%,rgba(242,232,210,1)_55%,rgba(225,212,188,1)_80%,rgba(208,194,168,1)_100%)]"
+          ? "fixed inset-0 z-0 [@media(max-width:1024px)_and_(orientation:landscape)]:h-full bg-[radial-gradient(ellipse_at_center,rgba(255,252,242,1)_0%,rgba(248,240,222,1)_30%,rgba(232,220,196,1)_58%,rgba(210,195,168,1)_78%,rgba(188,172,144,1)_100%)]"
           : "relative h-screen [@media(max-width:1024px)_and_(orientation:landscape)]:h-full bg-[radial-gradient(circle_at_center,rgba(225,214,193,0.92)_0%,rgba(223,214,199,0.94)_38%,rgba(241,235,222,0.97)_68%,rgba(255,252,245,0.99)_100%)] max-md:pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]"
       }`}
       style={
         pf.isVrisch
           ? {
-              backgroundImage: `radial-gradient(circle at center, rgba(255,250,235,0.0) 0%, rgba(235,222,195,0.45) 45%, rgba(215,200,172,0.85) 100%), url(${vgLogoUrl})`,
-              filter: "none",
+              backgroundImage: `radial-gradient(circle at center, rgba(255,252,240,0.0) 0%, rgba(240,228,200,0.3) 38%, rgba(200,185,158,0.72) 100%), url(${vgLogoUrl})`,
               backgroundSize: "auto, 38%",
               backgroundPosition: "center, center",
               backgroundRepeat: "no-repeat, no-repeat",
@@ -50,7 +49,15 @@ export default function ProjectsPage() {
           <div
             className="pointer-events-none fixed inset-0 z-1"
             style={{
-              background: "radial-gradient(circle at center, rgba(255,248,220,0.9) 0%, rgba(245,232,190,0.65) 15%, rgba(230,215,170,0.35) 32%, transparent 55%)",
+              background: "radial-gradient(circle at center, rgba(255,245,210,0.75) 0%, rgba(245,230,180,0.45) 18%, rgba(225,210,160,0.2) 36%, transparent 58%)",
+            }}
+            aria-hidden
+          />
+          {/* Edge vignette for depth */}
+          <div
+            className="pointer-events-none fixed inset-0 z-1"
+            style={{
+              background: "radial-gradient(ellipse at center, transparent 40%, rgba(160,140,108,0.18) 65%, rgba(130,110,80,0.42) 82%, rgba(105,88,60,0.62) 100%)",
             }}
             aria-hidden
           />
@@ -96,6 +103,7 @@ export default function ProjectsPage() {
             <ProjectNode
               key={project.id}
               project={project}
+              index={i}
               isVrisch={pf.isVrisch}
               x={pf.positions[i]?.x ?? 0}
               y={pf.positions[i]?.y ?? 0}
@@ -126,7 +134,7 @@ export default function ProjectsPage() {
         to="/circle"
         className={`fixed left-7 top-6 z-8 text-[0.65rem] uppercase tracking-[0.18em] no-underline opacity-70 transition-opacity hover:opacity-100 max-md:bottom-[calc(16px+env(safe-area-inset-bottom,0px))] max-md:left-1/2 max-md:right-auto max-md:top-auto max-md:-translate-x-1/2 max-md:text-center max-md:text-[0.6rem] max-md:tracking-[0.16em] ${
           pf.isVrisch
-            ? "text-[rgba(235,230,220,0.75)] hover:text-[rgba(255,250,240,0.95)]"
+            ? "text-[rgba(80,60,25,0.65)] hover:text-[rgba(75,52,12,1)]"
             : "text-[rgba(43,43,43,0.55)]"
         }`}
       >
