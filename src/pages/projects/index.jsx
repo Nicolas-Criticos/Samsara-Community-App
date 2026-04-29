@@ -41,17 +41,19 @@ export default function ProjectsPage() {
           aria-hidden
         />
       ) : (
-        <div
-          className="pointer-events-none fixed -inset-[20%] z-1 bg-[radial-gradient(circle_at_center,rgba(255,245,220,0.6)_0%,rgba(240,228,200,0.35)_30%,rgba(220,208,185,0.15)_55%,rgba(0,0,0,0)_75%)] animate-vrisch-void"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none fixed inset-0 z-1"
-          style={{
-            background: "radial-gradient(circle at center, rgba(200,175,110,0.22) 0%, rgba(180,155,90,0.1) 20%, transparent 45%)",
-          }}
-          aria-hidden
-        />
+        <>
+          <div
+            className="pointer-events-none fixed -inset-[20%] z-1 bg-[radial-gradient(circle_at_center,rgba(255,245,220,0.6)_0%,rgba(240,228,200,0.35)_30%,rgba(220,208,185,0.15)_55%,rgba(0,0,0,0)_75%)] animate-vrisch-void"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none fixed inset-0 z-1"
+            style={{
+              background: "radial-gradient(circle at center, rgba(200,175,110,0.22) 0%, rgba(180,155,90,0.1) 20%, transparent 45%)",
+            }}
+            aria-hidden
+          />
+        </>
       )}
 
       <RealmSwitch
