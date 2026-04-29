@@ -21,14 +21,14 @@ export default function ProjectsPage() {
     <div
       className={`flex min-h-screen w-screen max-w-[100vw] items-center justify-center overflow-hidden isolate ${
         pf.isVrisch
-          ? "fixed inset-0 z-0 [@media(max-width:1024px)_and_(orientation:landscape)]:h-full"
+          ? "fixed inset-0 z-0 [@media(max-width:1024px)_and_(orientation:landscape)]:h-full bg-[radial-gradient(ellipse_at_center,rgba(255,252,242,1)_0%,rgba(245,238,220,1)_35%,rgba(228,218,198,1)_65%,rgba(210,198,175,1)_100%)]"
           : "relative h-screen [@media(max-width:1024px)_and_(orientation:landscape)]:h-full bg-[radial-gradient(circle_at_center,rgba(225,214,193,0.92)_0%,rgba(223,214,199,0.94)_38%,rgba(241,235,222,0.97)_68%,rgba(255,252,245,0.99)_100%)] max-md:pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]"
       }`}
       style={
         pf.isVrisch
           ? {
-              backgroundImage: `radial-gradient(circle at center, rgba(0,0,0,0.45), rgba(0,0,0,0.92)), url(${vgLogoUrl})`,
-              backgroundSize: "auto, 40%",
+              backgroundImage: `radial-gradient(circle at center, rgba(255,252,245,0.15) 0%, rgba(240,235,220,0.55) 40%, rgba(220,210,190,0.82) 100%), url(${vgLogoUrl})`,
+              backgroundSize: "auto, 38%",
               backgroundPosition: "center, center",
               backgroundRepeat: "no-repeat, no-repeat",
             }
@@ -42,7 +42,14 @@ export default function ProjectsPage() {
         />
       ) : (
         <div
-          className="pointer-events-none fixed -inset-[20%] z-1 bg-[radial-gradient(circle_at_center,rgba(110,124,78,0.82)_0%,rgba(148,156,104,0.62)_28%,rgba(186,190,142,0.36)_46%,rgba(0,0,0,0)_72%)] animate-vrisch-void"
+          className="pointer-events-none fixed -inset-[20%] z-1 bg-[radial-gradient(circle_at_center,rgba(255,245,220,0.6)_0%,rgba(240,228,200,0.35)_30%,rgba(220,208,185,0.15)_55%,rgba(0,0,0,0)_75%)] animate-vrisch-void"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none fixed inset-0 z-1"
+          style={{
+            background: "radial-gradient(circle at center, rgba(200,175,110,0.22) 0%, rgba(180,155,90,0.1) 20%, transparent 45%)",
+          }}
           aria-hidden
         />
       )}
@@ -64,7 +71,11 @@ export default function ProjectsPage() {
           <IconButton
             icon="plus"
             aria-label="Seed Project"
-            className="relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.9),rgba(230,225,215,0.65))] text-[1.9rem] font-light leading-none text-[rgba(60,55,45,0.8)] shadow-none hover:scale-[1.08]! [&_span_svg]:h-1/2 [&_span_svg]:w-1/2 [&_span_svg]:max-h-[22px] [&_span_svg]:max-w-[22px]"
+            className={`relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-0 text-[1.9rem] font-light leading-none [&_span_svg]:h-1/2 [&_span_svg]:w-1/2 [&_span_svg]:max-h-[22px] [&_span_svg]:max-w-[22px] ${
+              pf.isVrisch
+                ? "bg-[radial-gradient(circle_at_32%_28%,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.18)_18%,rgba(180,165,140,0.25)_45%,rgba(80,70,60,0.65)_75%,rgba(30,25,20,0.88)_100%)] text-[rgba(245,238,224,0.9)] shadow-[0_0_18px_rgba(185,135,52,0.32),0_0_36px_rgba(145,105,32,0.16),0_16px_45px_rgba(0,0,0,0.72),inset_0_-4px_12px_rgba(100,80,40,0.3),inset_0_2px_8px_rgba(255,255,255,0.25)] hover:scale-[1.12]! hover:brightness-[1.12] hover:shadow-[0_0_26px_rgba(210,158,60,0.5),0_0_52px_rgba(165,118,38,0.28),0_20px_52px_rgba(0,0,0,0.78),inset_0_-5px_14px_rgba(120,95,45,0.4),inset_0_3px_10px_rgba(255,255,255,0.35)]!"
+                : "bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.9),rgba(230,225,215,0.65))] text-[rgba(60,55,45,0.8)] shadow-none hover:scale-[1.08]!"
+            }`}
             onClick={() => pf.setCreateOpen(true)}
           />
         </div>

@@ -120,6 +120,19 @@
   }
 }
 
+@keyframes nodeBreathVrisch {
+  0%,
+  100% {
+    transform: scale(1) translateY(0px);
+  }
+  33% {
+    transform: scale(1.025) translateY(-3px);
+  }
+  66% {
+    transform: scale(0.978) translateY(2px);
+  }
+}
+
 @keyframes applicationOrbPulse {
   0% {
     transform: scale(1);

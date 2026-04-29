@@ -15,15 +15,22 @@ export default function ProjectNode({
   const navigate = useNavigate();
   const { realm } = useParams();
   const isCreator = Boolean(currentUserId && project.created_by === currentUserId);
+  const breathOffset = isVrisch && project.id
+    ? `${((project.id.codePointAt(0) ?? 48) % 8) * 0.75}s`
+    : "0s";
 
   return (
     <div
-      className={`absolute flex h-[100px] w-[100px] cursor-pointer flex-col items-center justify-center rounded-full text-center text-[0.8rem] uppercase tracking-[0.12em] opacity-0 transition-all duration-450 ease-in-out animate-[nodeFadeIn_3s_ease_forwards,nodeBreath_7s_ease-in-out_infinite] hover:z-4 hover:scale-[1.12] hover:brightness-[1.04] max-md:h-20 max-md:w-20 max-md:text-[0.6rem] max-md:tracking-widest [@media(max-width:1024px)_and_(orientation:landscape)]:h-[90px] [@media(max-width:1024px)_and_(orientation:landscape)]:w-[90px] [@media(max-width:1024px)_and_(orientation:landscape)]:text-[0.65rem] group ${
+      className={`absolute flex h-[100px] w-[100px] cursor-pointer flex-col items-center justify-center rounded-full text-center text-[0.8rem] uppercase tracking-[0.12em] opacity-0 transition-all duration-450 ease-in-out hover:z-4 hover:scale-[1.12] max-md:h-20 max-md:w-20 max-md:text-[0.6rem] max-md:tracking-widest [@media(max-width:1024px)_and_(orientation:landscape)]:h-[90px] [@media(max-width:1024px)_and_(orientation:landscape)]:w-[90px] [@media(max-width:1024px)_and_(orientation:landscape)]:text-[0.65rem] group ${
         isVrisch
-          ? "text-[rgba(230,225,215,0.85)] animate-[nodeFadeIn_3s_ease_forwards,nodeBreath_9s_ease-in-out_infinite] bg-[radial-gradient(circle_at_30%_30%,rgba(60,60,60,0.95),rgba(30,30,30,0.85))] shadow-[0_12px_30px_rgba(0,0,0,0.65),inset_0_0_18px_rgba(255,255,255,0.05)] hover:shadow-[0_18px_45px_rgba(0,0,0,0.4),inset_0_0_22px_rgba(255,255,255,0.08)]"
-          : "text-[rgba(43,43,43,0.75)] bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.9),rgba(230,225,215,0.6)_65%,rgba(210,205,195,0.45)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.08),inset_0_0_18px_rgba(255,255,255,0.6)] hover:shadow-[0_18px_45px_rgba(0,0,0,0.14),inset_0_0_22px_rgba(255,255,255,0.75)]"
+          ? "text-[rgba(80,65,42,0.88)] [text-shadow:0_1px_4px_rgba(0,0,0,0.85)] animate-[nodeFadeIn_3s_ease_forwards,nodeBreathVrisch_9s_ease-in-out_infinite] bg-[radial-gradient(circle_at_32%_28%,rgba(255,255,255,0.92)_0%,rgba(255,252,242,0.75)_15%,rgba(235,225,200,0.55)_38%,rgba(200,185,155,0.45)_60%,rgba(165,148,118,0.55)_80%,rgba(140,125,98,0.65)_100%)] shadow-[0_18px_45px_rgba(100,80,40,0.18),0_6px_16px_rgba(100,80,40,0.12),inset_0_-6px_14px_rgba(140,110,60,0.15),inset_0_3px_10px_rgba(255,255,255,0.7),inset_0_0_0_1px_rgba(255,255,255,0.45)] hover:brightness-[1.12] hover:shadow-[0_24px_60px_rgba(100,80,40,0.25),0_8px_20px_rgba(100,80,40,0.18),inset_0_-8px_18px_rgba(140,110,60,0.2),inset_0_4px_14px_rgba(255,255,255,0.85),inset_0_0_0_1px_rgba(255,255,255,0.55)]"
+          : "text-[rgba(43,43,43,0.75)] animate-[nodeFadeIn_3s_ease_forwards,nodeBreath_7s_ease-in-out_infinite] hover:brightness-[1.04] bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.9),rgba(230,225,215,0.6)_65%,rgba(210,205,195,0.45)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.08),inset_0_0_18px_rgba(255,255,255,0.6)] hover:shadow-[0_18px_45px_rgba(0,0,0,0.14),inset_0_0_22px_rgba(255,255,255,0.75)]"
       }`}
-      style={{ left: `${x}px`, top: `${y}px` }}
+      style={{
+        left: `${x}px`,
+        top: `${y}px`,
+        ...(isVrisch ? { animationDelay: `0s, ${breathOffset}` } : {}),
+      }}
       onClick={() => onOpen(project)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -34,7 +41,7 @@ export default function ProjectNode({
       role="button"
       tabIndex={0}
     >
-      <span>{project.title}</span>
+      <span style={isVrisch ? { fontFamily: "Cormorant Garamond, serif" } : undefined}>{project.title}</span>
 
       {project.chinese_new_year ? (
         <div

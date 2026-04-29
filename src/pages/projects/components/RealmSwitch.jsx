@@ -52,20 +52,20 @@ export default function RealmSwitch({
         </span>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {["field", "table", "calendar", "gantt"].map((mode) => (
           <button
             key={mode}
             type="button"
             onClick={() => onViewModeChange(mode)}
-            className={`cursor-pointer text-[0.62rem] uppercase tracking-[0.16em] transition-opacity hover:opacity-100 ${
-              viewMode === mode
-                ? "opacity-100 underline underline-offset-2"
-                : "opacity-50"
-            } ${
+            className={`cursor-pointer text-[0.62rem] uppercase tracking-[0.16em] transition-all rounded-full px-2.5 py-[0.28rem] ${
               isVrisch
-                ? "text-[rgba(245,240,232,0.82)]"
-                : "text-[rgba(43,43,43,0.68)]"
+                ? viewMode === mode
+                  ? "bg-[rgba(180,128,48,0.22)] border border-[rgba(205,158,60,0.48)] text-[rgba(255,228,168,0.96)] shadow-[0_0_8px_rgba(185,138,50,0.18),inset_0_1px_3px_rgba(255,220,140,0.12)]"
+                  : "bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.09)] text-[rgba(200,190,174,0.5)] hover:bg-[rgba(255,255,255,0.09)] hover:text-[rgba(225,215,198,0.78)] hover:border-[rgba(255,255,255,0.16)]"
+                : viewMode === mode
+                  ? "opacity-100 underline underline-offset-2 text-[rgba(43,43,43,0.68)]"
+                  : "opacity-50 text-[rgba(43,43,43,0.68)] hover:opacity-100"
             }`}
           >
             {mode}
