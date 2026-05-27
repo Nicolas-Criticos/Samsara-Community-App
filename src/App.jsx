@@ -11,6 +11,7 @@ import VgAnimals from "./pages/vg/animals/index.jsx";
 import VgProduce from "./pages/vg/produce/index.jsx";
 import VgAccommodation from "./pages/vg/accommodation/index.jsx";
 import VgHistory from "./pages/vg/history/index.jsx";
+import VgProjects from "./pages/vg/projects/index.jsx";
 
 function LegacyFieldRedirect() {
   const { realm } = useParams();
@@ -57,6 +58,7 @@ export default function App() {
         }
       >
         <Route index element={<VgDashboard />} />
+        <Route path="projects" element={<VgProjects />} />
         <Route path="animals" element={<VgAnimals />} />
         <Route path="produce" element={<VgProduce />} />
         <Route path="accommodation" element={<VgAccommodation />} />

@@ -4,7 +4,7 @@ import { useCurrentMember } from '../hooks/useCurrentMember.js';
 
 const NAV_ITEMS = [
   { to: '/vg', label: 'Dashboard', icon: '⊞', exact: true },
-  { to: '/projects/vrischgewagt', label: 'Projects', icon: '◈', external: true },
+  { to: '/vg/projects', label: 'Projects', icon: '◈' },
   { to: '/vg/animals', label: 'Animals', icon: '🐑' },
   { to: '/vg/produce', label: 'Produce', icon: '🫒' },
   { to: '/vg/accommodation', label: 'Rooms', icon: '🏡' },
