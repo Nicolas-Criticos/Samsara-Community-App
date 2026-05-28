@@ -47,6 +47,12 @@ export const VG_COLORS = {
   card: 'rgba(255,252,247,0.95)',
 };
 
+// Member avatar/chart colors (shared across pages)
+export const MEMBER_COLORS = [
+  '#6b7f5e','#c2a66d','#8b6f47','#5a7a5a','#4a6b8b',
+  '#7a5a8b','#8b4a4a','#4a8b7a','#8b8b3a','#6b5a8b',
+];
+
 // Chart line colors for history/graphs
 export const CHART_COLORS = {
   revenue: '#6b7f5e',

@@ -5,14 +5,7 @@ import { useAuthSession } from '../../../hooks/useAuthSession.js';
 import { useCurrentMember } from '../hooks/useCurrentMember.js';
 import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { formatDate, capitalize, formatCurrency } from '../../../lib/vg/helpers.js';
-import { MONTH_SHORT } from '../../../lib/vg/constants.js';
-
-// ─── Constants ────────────────────────────────────────────────────────────
-
-const MEMBER_COLORS = [
-  '#6b7f5e','#c2a66d','#8b6f47','#5a7a5a','#4a6b8b',
-  '#7a5a8b','#8b4a4a','#4a8b7a','#8b8b3a','#6b5a8b',
-];
+import { MONTH_SHORT, MEMBER_COLORS } from '../../../lib/vg/constants.js';
 
 const STATUS_PILL = {
   open: 'bg-emerald-100 text-emerald-800',
