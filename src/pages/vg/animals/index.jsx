@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { supabase } from '../../../lib/supabase.js';
 import { MONTH_SHORT } from '../../../lib/vg/constants.js';
 import { formatDate, capitalize } from '../../../lib/vg/helpers.js';
@@ -24,6 +24,7 @@ const SHEEP_COLS = [
   { key: 'pregnant', label: 'Pregnant', color: '#b89a6b' },
   { key: 'slaughtered', label: 'Slaughter', color: '#8b4a4a' },
   { key: 'deaths', label: 'Deaths', color: '#6b4a4a' },
+  { key: 'sold', label: 'Sold', color: '#4a6b8b' },
 ];
 
 const CATTLE_COLS = [
@@ -34,6 +35,7 @@ const CATTLE_COLS = [
   { key: 'births', label: 'Births', color: '#5a7a5a' },
   { key: 'slaughtered', label: 'Slaughter', color: '#8b4a4a' },
   { key: 'deaths', label: 'Deaths', color: '#6b4a4a' },
+  { key: 'sold', label: 'Sold', color: '#4a6b8b' },
 ];
 
 function emptyRow(m) {
@@ -339,14 +341,21 @@ export default function VgAnimals() {
     qc.invalidateQueries({ queryKey: ['vg', 'livestock', animalType, year] });
   }, [rawData, year, animalType, categories, session, qc]);
 
-  // Bar chart data — only months with data
+  // Chart data — only months with data
   const chartData = rows.filter(r => {
     const total = categories.reduce((s, c) => s + (r[c] || 0), 0);
     return total > 0;
   }).map(r => ({
     name: MONTH_SHORT[r.month - 1],
-    ...Object.fromEntries(cols.filter(c => !c.computed).map(c => [c.label, r[c.key] || 0])),
     Total: categories.reduce((s, c) => s + (r[c] || 0), 0),
+    Ewes: r.ewe || r.cow || 0,
+    Rams: r.ram || r.bull || 0,
+    Lambs: r.lamb || r.calf || 0,
+    Births: r.births || 0,
+    Pregnant: r.pregnant || 0,
+    Slaughter: r.slaughtered || 0,
+    Deaths: r.deaths || 0,
+    Sold: r.sold || 0,
   }));
 
   return (
@@ -383,33 +392,35 @@ export default function VgAnimals() {
           <YearTable animalType={animalType} year={year} rows={rows} onSave={handleSave} />
         </section>
 
-        {/* Bar chart */}
+        {/* Line chart — total headcount trend */}
         {chartData.length > 0 && (
           <section>
-            <p className="text-[0.6rem] uppercase tracking-[0.2em] text-[rgba(75,71,65,0.45)] mb-4">Monthly Breakdown</p>
+            <p className="text-[0.6rem] uppercase tracking-[0.2em] text-[rgba(75,71,65,0.45)] mb-4">Total Headcount — Month to Month</p>
             <div className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
-              <div style={{ height: 280 }}>
+              <div style={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.12)" />
+                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.1)" />
                     <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
-                    <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
+                    <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} domain={['auto', 'auto']} />
                     <Tooltip contentStyle={{ background: 'rgba(255,252,247,0.97)', border: '1px solid rgba(122,112,94,0.2)', borderRadius: 12, fontSize: 12 }} />
                     <Legend wrapperStyle={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.08em' }} />
-                    {cols.filter(c => !c.computed && !['births', 'pregnant', 'slaughtered', 'deaths', 'sold'].includes(c.key)).map(col => (
-                      <Bar key={col.key} dataKey={col.label} fill={col.color} radius={[3, 3, 0, 0]} stackId="a" />
-                    ))}
-                  </BarChart>
+                    <Line type="monotone" dataKey="Total" stroke="#6b7f5e" strokeWidth={2.5} dot={{ r: 4, fill: '#6b7f5e' }} />
+                    <Line type="monotone" dataKey="Ewes" stroke="#c2a66d" strokeWidth={1.5} dot={{ r: 3 }} strokeDasharray="4 2" />
+                    <Line type="monotone" dataKey="Rams" stroke="#8b6f47" strokeWidth={1.5} dot={{ r: 3 }} strokeDasharray="4 2" />
+                    {chartData.some(d => d.Lambs > 0) && <Line type="monotone" dataKey="Lambs" stroke="#8fb88f" strokeWidth={1.5} dot={{ r: 3 }} strokeDasharray="4 2" />}
+                    {chartData.some(d => d.Pregnant > 0) && <Line type="monotone" dataKey="Pregnant" stroke="#b89a6b" strokeWidth={1.5} dot={{ r: 3 }} strokeDasharray="2 3" />}
+                  </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </section>
         )}
 
-        {/* Events bar chart (births, slaughter, deaths) */}
+        {/* Bar chart — events (births, slaughter, deaths, sold) */}
         {chartData.length > 0 && (
           <section>
-            <p className="text-[0.6rem] uppercase tracking-[0.2em] text-[rgba(75,71,65,0.45)] mb-4">Events — Births, Slaughter, Deaths</p>
+            <p className="text-[0.6rem] uppercase tracking-[0.2em] text-[rgba(75,71,65,0.45)] mb-4">Events — Births · Slaughter · Deaths · Sold</p>
             <div className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
               <div style={{ height: 200 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -422,6 +433,7 @@ export default function VgAnimals() {
                     <Bar dataKey="Births" fill="#5a7a5a" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="Slaughter" fill="#8b4a4a" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="Deaths" fill="#6b4a4a" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="Sold" fill="#4a6b8b" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
