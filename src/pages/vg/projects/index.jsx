@@ -242,7 +242,7 @@ function CompletionSummary({ project, onClose }) {
 
   const { data: tasks } = useQuery({
     queryKey: ['vg', 'tasks', project.id],
-    queryFn: () => supabase.from('project_tasks').select('*').eq('project_id', project.id).then(r => r.data || []),
+    queryFn: () => supabase.from('project_tasks').select('*').eq('project', project.id).then(r => r.data || []),
   });
 
   const { data: review } = useQuery({
@@ -361,7 +361,7 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
 
   const { data: tasks } = useQuery({
     queryKey: ['vg', 'tasks', project.id],
-    queryFn: () => supabase.from('project_tasks').select('*').eq('project_id', project.id).order('created_at').then(r => r.data || []),
+    queryFn: () => supabase.from('project_tasks').select('*').eq('project', project.id).order('created_at').then(r => r.data || []),
   });
 
   const completedCount = (tasks || []).filter(t => t.status === 'done').length;
@@ -375,7 +375,7 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
   async function addTask(e) {
     e.preventDefault();
     if (!taskTitle.trim()) return;
-    await supabase.from('project_tasks').insert({ project_id: project.id, title: taskTitle.trim(), status: 'todo', due_date: taskDue || null });
+    await supabase.from('project_tasks').insert({ project: project.id, name: taskTitle.trim(), status: 'todo', due_date: taskDue || null });
     qc.invalidateQueries({ queryKey: ['vg', 'tasks', project.id] });
     setTaskTitle(''); setTaskDue('');
   }
@@ -389,7 +389,7 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
 
   async function deleteProject() {
     if (!confirm(`Permanently delete "${project.title}"? This cannot be undone.`)) return;
-    await supabase.from('project_tasks').delete().eq('project_id', project.id);
+    await supabase.from('project_tasks').delete().eq('project', project.id);
     await supabase.from('project_bom_items').delete().eq('project_id', project.id);
     await supabase.from('projects').delete().eq('id', project.id);
     qc.invalidateQueries({ queryKey: ['vg', 'projects'] });
@@ -470,7 +470,7 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${t.status === 'done' ? 'bg-[#6b7f5e] border-[#6b7f5e]' : 'border-[rgba(122,112,94,0.3)]'}`} style={t.status === 'done' ? { backgroundColor: color, borderColor: color } : {}}>
                     {t.status === 'done' && <span className="text-white text-[0.5rem]">✓</span>}
                   </div>
-                  <span className={`flex-1 text-[0.8rem] ${t.status === 'done' ? 'line-through text-[rgba(75,71,65,0.35)]' : 'text-[#2b2b2b]'}`}>{t.title}</span>
+                  <span className={`flex-1 text-[0.8rem] ${t.status === 'done' ? 'line-through text-[rgba(75,71,65,0.35)]' : 'text-[#2b2b2b]'}`}>{t.name || t.title}</span>
                   {t.due_date && <span className="text-[0.62rem] text-[rgba(75,71,65,0.35)]">{formatDate(t.due_date)}</span>}
                 </div>
               ))}
