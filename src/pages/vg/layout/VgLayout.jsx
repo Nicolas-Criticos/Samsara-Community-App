@@ -73,12 +73,6 @@ export default function VgLayout() {
 
         {/* Bottom: user + back */}
         <div className="p-3 border-t border-[rgba(122,112,94,0.12)] flex flex-col gap-1">
-          <NavLink
-            to="/circle"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.68rem] uppercase tracking-[0.12em] text-[rgba(75,71,65,0.5)] no-underline hover:text-[rgba(43,43,43,0.7)] transition-all"
-          >
-            <span className="text-sm">←</span> Circle
-          </NavLink>
           <div className="flex items-center gap-2 px-3 py-2">
             <div className="w-7 h-7 rounded-full bg-[rgba(122,112,94,0.2)] flex items-center justify-center text-[0.7rem] font-semibold text-[rgba(43,43,43,0.7)]">
               {initial}

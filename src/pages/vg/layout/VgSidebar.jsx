@@ -49,15 +49,7 @@ export default function VgSidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto">
-        <NavLink
-          to="/circle"
-          className="flex items-center gap-2 rounded-xl px-3 py-2 text-[0.65rem] uppercase tracking-[0.18em] text-[rgba(75,71,65,0.55)] hover:text-[#2b2b2b] no-underline"
-        >
-          <span>←</span>
-          <span>Back to Circle</span>
-        </NavLink>
-      </div>
+      <div className="mt-auto" />
     </aside>
   );
 }
