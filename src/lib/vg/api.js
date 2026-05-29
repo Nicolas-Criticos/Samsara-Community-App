@@ -148,9 +148,12 @@ export const fetchBookings = ({ year, month } = {}) => {
     .select('*, vg_units(name)')
     .order('check_in', { ascending: false });
   if (year && month) {
+    // Show bookings that START in this month
     const from = `${year}-${String(month).padStart(2,'0')}-01`;
-    const to = `${year}-${String(month + 1 > 12 ? year + 1 : year).toString()}-${String(month + 1 > 12 ? 1 : month + 1).padStart(2,'0')}-01`;
-    q = q.gte('check_in', from).lt('check_out', to);
+    const nextM = month + 1 > 12 ? 1 : month + 1;
+    const nextY = month + 1 > 12 ? year + 1 : year;
+    const to = `${nextY}-${String(nextM).padStart(2,'0')}-01`;
+    q = q.gte('check_in', from).lt('check_in', to);
   }
   return q;
 };
@@ -162,8 +165,34 @@ export const fetchBookingsForYear = (year) =>
     .lte('check_in', `${year}-12-31`)
     .order('check_in');
 
-export const insertBooking = (row) =>
-  supabase.from('vg_bookings').insert(row).select().single();
+export const insertBooking = async (row) => {
+  const result = await supabase.from('vg_bookings').insert(row).select().single();
+  if (result.data) {
+    // Auto-sync: recalculate monthly total for the check_in month and upsert into history
+    try {
+      const checkIn = new Date(row.check_in);
+      const calMonth = checkIn.getMonth() + 1; // 1-12
+      const calYear = checkIn.getFullYear();
+      // Determine financial year (Mar-Feb)
+      const fyStart = calMonth >= 3 ? calYear : calYear - 1;
+      const financialYear = `${fyStart}-${fyStart + 1}`;
+      // Sum all bookings for this calendar month
+      const from = `${calYear}-${String(calMonth).padStart(2,'0')}-01`;
+      const nextM = calMonth + 1 > 12 ? 1 : calMonth + 1;
+      const nextY = calMonth + 1 > 12 ? calYear + 1 : calYear;
+      const to = `${nextY}-${String(nextM).padStart(2,'0')}-01`;
+      const { data: monthBookings } = await supabase
+        .from('vg_bookings')
+        .select('total')
+        .gte('check_in', from)
+        .lt('check_in', to);
+      const monthTotal = (monthBookings || []).reduce((t, b) => t + (b.total || 0), 0);
+      await supabase.from('vg_accomm_sales_history')
+        .upsert({ financial_year: financialYear, month: calMonth, revenue: monthTotal }, { onConflict: 'financial_year,month' });
+    } catch (e) { console.warn('History sync failed:', e); }
+  }
+  return result;
+};
 
 export const deleteBooking = (id) =>
   supabase.from('vg_bookings').delete().eq('id', id);
