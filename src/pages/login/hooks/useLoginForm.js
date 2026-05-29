@@ -29,7 +29,7 @@ export function useLoginForm() {
 
   useEffect(() => {
     if (session) {
-      navigate("/circle", { replace: true });
+      navigate("/vg", { replace: true });
     }
   }, [session, navigate]);
 
@@ -38,7 +38,7 @@ export function useLoginForm() {
       const { error } = await signInWithEmailPassword(email, password);
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => navigate("/circle", { replace: true }),
+    onSuccess: () => navigate("/vg", { replace: true }),
     onError: (err) => setAuthNotice(err.message || "Login failed"),
   });
 

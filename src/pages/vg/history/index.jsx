@@ -48,38 +48,6 @@ function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCosts
   });
 }
 
-function HistoryChart({ title, data, showRevenue = true }) {
-  const [hidden, setHidden] = useState({});
-
-  const toggle = (key) => setHidden(h => ({ ...h, [key]: !h[key] }));
-
-  return (
-    <div className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
-      <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(75,71,65,0.6)] mb-4 font-semibold">{title}</p>
-      <div style={{ height: 200 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.12)" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
-            <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} tickFormatter={v => v >= 1000 ? `R${(v/1000).toFixed(0)}k` : `R${v}`} />
-            <Tooltip
-              contentStyle={{ background: 'rgba(255,252,247,0.97)', border: '1px solid rgba(122,112,94,0.2)', borderRadius: 12, fontSize: 12 }}
-              formatter={v => formatCurrency(v)}
-            />
-            <Legend
-              wrapperStyle={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}
-              onClick={e => toggle(e.dataKey)}
-            />
-            {showRevenue && <Line type="monotone" dataKey="revenue" stroke="#6b7f5e" strokeWidth={2} dot={false} hide={!!hidden.revenue} name="Revenue" />}
-            <Line type="monotone" dataKey="costs" stroke="#c2a66d" strokeWidth={2} dot={false} hide={!!hidden.costs} name="Costs" />
-            {showRevenue && <Line type="monotone" dataKey="profit" stroke="#2b2b2b" strokeWidth={2} dot={false} strokeDasharray="4 2" hide={!!hidden.profit} name="Profit" />}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
 // Financial year: e.g. '2025-2026' runs Mar 2025 → Feb 2026
 // Months in financial year order: Mar(3), Apr(4)...Feb(2)
 const FY_MONTHS = [3,4,5,6,7,8,9,10,11,12,1,2];
@@ -97,6 +65,16 @@ function buildAccommHistoryData(histRows) {
   });
 }
 
+const ALL_SECTIONS = [
+  { key: 'olive_oil', title: 'Olive Oil', showRevenue: true },
+  { key: 'olives', title: 'Olives', showRevenue: true },
+  { key: 'meat', title: 'Meat', showRevenue: true },
+  { key: 'other', title: 'Other Products', showRevenue: true },
+  { key: 'staff', title: 'Staff Costs', showRevenue: false },
+  { key: 'total', title: 'Farm Total', showRevenue: true },
+  { key: 'accommodation_hist', title: 'Accommodation', showRevenue: true, special: true },
+];
+
 export default function VgHistory() {
   const isAdmin = useIsAdmin();
   const [year, setYear] = useState(new Date().getFullYear());
@@ -113,6 +91,20 @@ export default function VgHistory() {
   const parseFY = (fy) => { const [a] = fy.split('-'); return parseInt(a); };
   const prevFY = () => { const y = parseFY(financialYear); setFinancialYear(`${y-1}-${y}`); };
   const nextFY = () => { const y = parseFY(financialYear); setFinancialYear(`${y+1}-${y+2}`); };
+
+  const [sectionOrder, setSectionOrder] = useState(ALL_SECTIONS.map(s => s.key));
+  const [collapsed, setCollapsed] = useState({});
+
+  function moveUp(idx) {
+    if (idx === 0) return;
+    setSectionOrder(o => { const a = [...o]; [a[idx-1], a[idx]] = [a[idx], a[idx-1]]; return a; });
+  }
+  function moveDown(idx) {
+    setSectionOrder(o => { if (idx >= o.length-1) return o; const a = [...o]; [a[idx], a[idx+1]] = [a[idx+1], a[idx]]; return a; });
+  }
+  function toggleCollapse(key) {
+    setCollapsed(c => ({ ...c, [key]: !c[key] }));
+  }
 
   const { data: accommHistory } = useQuery({
     queryKey: ['vg', 'accomm_history', financialYear],
@@ -171,17 +163,6 @@ export default function VgHistory() {
     );
   }
 
-  const SECTIONS = [
-    { key: 'olive_oil', title: 'Olive Oil', showRevenue: true },
-    { key: 'olives', title: 'Olives', showRevenue: true },
-    { key: 'meat', title: 'Meat', showRevenue: true },
-    { key: 'other', title: 'Other Products', showRevenue: true },
-    { key: 'staff', title: 'Staff Costs', showRevenue: false },
-    { key: 'total', title: 'Farm Total', showRevenue: true },
-  ];
-
-  const accommChartData = buildAccommHistoryData(accommHistory);
-
   return (
     <div className="min-h-screen">
       <div className="border-b border-[rgba(122,112,94,0.12)] bg-[rgba(255,252,247,0.8)] backdrop-blur-sm px-6 py-5">
@@ -199,39 +180,78 @@ export default function VgHistory() {
       </div>
 
       <div className="p-6 max-w-5xl space-y-5">
-        {SECTIONS.map(section => {
+        {sectionOrder.map((key, idx) => {
+          const section = ALL_SECTIONS.find(s => s.key === key);
+          if (!section) return null;
+          const isCollapsed = !!collapsed[key];
+
+          if (section.special) {
+            // Accommodation with financial year selector
+            const accommChartData = buildAccommHistoryData(accommHistory);
+            return (
+              <div key={key} className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <button onClick={() => toggleCollapse(key)} className="text-[0.75rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.5)] hover:scale-100 mr-1">{isCollapsed ? '▶' : '▼'}</button>
+                  <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(75,71,65,0.6)] font-semibold flex-1">Accommodation</p>
+                  <div className="flex items-center gap-1">
+                    <button onClick={prevFY} className="rounded-lg px-2 py-1 text-xs bg-transparent text-[rgba(75,71,65,0.6)] hover:bg-[rgba(122,112,94,0.1)] shadow-none hover:scale-100">←</button>
+                    <span className="text-[0.75rem] font-light text-[#2b2b2b] w-24 text-center">{financialYear}</span>
+                    <button onClick={nextFY} className="rounded-lg px-2 py-1 text-xs bg-transparent text-[rgba(75,71,65,0.6)] hover:bg-[rgba(122,112,94,0.1)] shadow-none hover:scale-100">→</button>
+                  </div>
+                  <div className="flex flex-col gap-0.5 ml-2">
+                    <button onClick={() => moveUp(idx)} disabled={idx === 0} className="text-[0.6rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.4)] hover:scale-100 disabled:opacity-20 leading-none">↑</button>
+                    <button onClick={() => moveDown(idx)} disabled={idx === sectionOrder.length-1} className="text-[0.6rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.4)] hover:scale-100 disabled:opacity-20 leading-none">↓</button>
+                  </div>
+                </div>
+                {!isCollapsed && (
+                  <div style={{ height: 200 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={accommChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.12)" />
+                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
+                        <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} tickFormatter={v => v >= 1000 ? `R${(v/1000).toFixed(0)}k` : `R${v}`} />
+                        <Tooltip contentStyle={{ background: 'rgba(255,252,247,0.97)', border: '1px solid rgba(122,112,94,0.2)', borderRadius: 12, fontSize: 12 }} formatter={v => formatCurrency(v)} />
+                        <Legend wrapperStyle={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                        <Line type="monotone" dataKey="revenue" stroke="#6b7f5e" strokeWidth={2} dot={false} name="Revenue" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Standard section
           const data = buildMonthlyData(year, sales, expenses, bookings, unitCosts, staffLogs, section.key);
           return (
-            <HistoryChart key={section.key} title={section.title} data={data} showRevenue={section.showRevenue} />
+            <div key={key} className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <button onClick={() => toggleCollapse(key)} className="text-[0.75rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.5)] hover:scale-100 mr-1">{isCollapsed ? '▶' : '▼'}</button>
+                <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(75,71,65,0.6)] font-semibold flex-1">{section.title}</p>
+                <div className="flex flex-col gap-0.5">
+                  <button onClick={() => moveUp(idx)} disabled={idx === 0} className="text-[0.6rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.4)] hover:scale-100 disabled:opacity-20 leading-none">↑</button>
+                  <button onClick={() => moveDown(idx)} disabled={idx === sectionOrder.length-1} className="text-[0.6rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.4)] hover:scale-100 disabled:opacity-20 leading-none">↓</button>
+                </div>
+              </div>
+              {!isCollapsed && (
+                <div style={{ height: 200 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.12)" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
+                      <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} tickFormatter={v => v >= 1000 ? `R${(v/1000).toFixed(0)}k` : `R${v}`} />
+                      <Tooltip contentStyle={{ background: 'rgba(255,252,247,0.97)', border: '1px solid rgba(122,112,94,0.2)', borderRadius: 12, fontSize: 12 }} formatter={v => formatCurrency(v)} />
+                      <Legend wrapperStyle={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }} onClick={e => {}} />
+                      {section.showRevenue && <Line type="monotone" dataKey="revenue" stroke="#6b7f5e" strokeWidth={2} dot={false} name="Revenue" />}
+                      <Line type="monotone" dataKey="costs" stroke="#c2a66d" strokeWidth={2} dot={false} name="Costs" />
+                      {section.showRevenue && <Line type="monotone" dataKey="profit" stroke="#2b2b2b" strokeWidth={2} dot={false} strokeDasharray="4 2" name="Profit" />}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
           );
         })}
-
-        {/* Accommodation — uses financial year + historical table */}
-        <div className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(75,71,65,0.6)] font-semibold">Accommodation</p>
-            <div className="flex items-center gap-2">
-              <button onClick={prevFY} className="rounded-lg px-2 py-1 text-xs bg-transparent text-[rgba(75,71,65,0.6)] hover:bg-[rgba(122,112,94,0.1)] shadow-none hover:scale-100">←</button>
-              <span className="text-[0.75rem] font-light text-[#2b2b2b] w-24 text-center">{financialYear}</span>
-              <button onClick={nextFY} className="rounded-lg px-2 py-1 text-xs bg-transparent text-[rgba(75,71,65,0.6)] hover:bg-[rgba(122,112,94,0.1)] shadow-none hover:scale-100">→</button>
-            </div>
-          </div>
-          <div style={{ height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={accommChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.12)" />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
-                <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} tickFormatter={v => v >= 1000 ? `R${(v/1000).toFixed(0)}k` : `R${v}`} />
-                <Tooltip
-                  contentStyle={{ background: 'rgba(255,252,247,0.97)', border: '1px solid rgba(122,112,94,0.2)', borderRadius: 12, fontSize: 12 }}
-                  formatter={v => formatCurrency(v)}
-                />
-                <Legend wrapperStyle={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
-                <Line type="monotone" dataKey="revenue" stroke="#6b7f5e" strokeWidth={2} dot={false} name="Revenue" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
       </div>
     </div>
   );

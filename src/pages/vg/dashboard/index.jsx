@@ -113,7 +113,7 @@ function ChatDrawer({ recipient, currentUserId, onClose }) {
 
 // ─── Member Card ─────────────────────────────────────────────────────────
 
-function MemberCard({ member, allMembers, currentUserId, unreadCount, onClick }) {
+function MemberCard({ member, allMembers, currentUserId, unreadCount, onClick, isAdmin, currentMemberId, onRoleToggle }) {
   const color = memberColor(member, allMembers);
   const initial = (member.name || member.username || '?').charAt(0).toUpperCase();
   const isSelf = member.user_id === currentUserId;
@@ -132,6 +132,14 @@ function MemberCard({ member, allMembers, currentUserId, unreadCount, onClick })
       <div className="flex-1 min-w-0">
         <p className="text-[0.82rem] font-medium text-[#2b2b2b] truncate">{member.name || member.username}</p>
         <p className="text-[0.62rem] text-[rgba(75,71,65,0.45)] uppercase tracking-[0.1em]">{member.role || 'Member'}{isSelf ? ' · You' : ''}</p>
+        {isAdmin && member.id !== currentMemberId && (
+          <button
+            onClick={e => { e.stopPropagation(); onRoleToggle(member); }}
+            className="mt-2 rounded-full px-3 py-0.5 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.25)] text-[rgba(75,71,65,0.5)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.08)]"
+          >
+            {member.role === 'Admin' ? 'Remove Admin' : 'Make Admin'}
+          </button>
+        )}
       </div>
       {!isSelf && (
         <div className="text-[rgba(75,71,65,0.3)] text-sm">💬</div>
@@ -296,6 +304,9 @@ export default function VgDashboard() {
                 currentUserId={currentUserId}
                 unreadCount={(unreadMessages||{})[m.user_id] || 0}
                 onClick={setChatWith}
+                isAdmin={isAdmin}
+                currentMemberId={currentMember?.id}
+                onRoleToggle={async (mem) => { await supabase.from('members').update({ role: mem.role === 'Admin' ? 'Member' : 'Admin' }).eq('id', mem.id); qc.invalidateQueries({ queryKey: ['vg', 'members'] }); }}
               />
             ))}
           </div>
