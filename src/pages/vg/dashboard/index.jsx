@@ -117,6 +117,18 @@ function MemberCard({ member, allMembers, currentUserId, unreadCount, onClick, i
   const color = memberColor(member, allMembers);
   const initial = (member.name || member.username || '?').charAt(0).toUpperCase();
   const isSelf = member.user_id === currentUserId;
+  const [toggling, setToggling] = useState(false);
+  const [toast, setToast] = useState('');
+
+  async function handleRoleToggle(e) {
+    e.stopPropagation();
+    setToggling(true);
+    await onRoleToggle(member);
+    const newRole = member.role === 'Admin' ? 'Member' : 'Admin';
+    setToast(`${member.name || member.username} is now ${newRole}`);
+    setToggling(false);
+    setTimeout(() => setToast(''), 3000);
+  }
 
   return (
     <div
@@ -130,14 +142,23 @@ function MemberCard({ member, allMembers, currentUserId, unreadCount, onClick, i
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[0.82rem] font-medium text-[#2b2b2b] truncate">{member.name || member.username}</p>
-        <p className="text-[0.62rem] text-[rgba(75,71,65,0.45)] uppercase tracking-[0.1em]">{member.role || 'Member'}{isSelf ? ' · You' : ''}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-[0.82rem] font-medium text-[#2b2b2b] truncate">{member.name || member.username}</p>
+          {member.role === 'Admin' && (
+            <span className="rounded-full px-1.5 py-0.5 text-[0.52rem] uppercase tracking-[0.1em] bg-[rgba(194,166,109,0.15)] text-[#c2a66d] border border-[rgba(194,166,109,0.3)]">Admin</span>
+          )}
+        </div>
+        <p className="text-[0.62rem] text-[rgba(75,71,65,0.45)] uppercase tracking-[0.1em]">{isSelf ? 'You' : (member.username || '')}</p>
+        {toast && (
+          <p className="text-[0.62rem] text-[#6b7f5e] mt-1 font-medium">{toast}</p>
+        )}
         {isAdmin && member.id !== currentMemberId && (
           <button
-            onClick={e => { e.stopPropagation(); onRoleToggle(member); }}
-            className="mt-2 rounded-full px-3 py-0.5 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.25)] text-[rgba(75,71,65,0.5)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.08)]"
+            onClick={handleRoleToggle}
+            disabled={toggling}
+            className="mt-1.5 rounded-full px-3 py-0.5 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.25)] text-[rgba(75,71,65,0.5)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.08)] disabled:opacity-40"
           >
-            {member.role === 'Admin' ? 'Remove Admin' : 'Make Admin'}
+            {toggling ? '…' : (member.role === 'Admin' ? 'Remove Admin' : 'Make Admin')}
           </button>
         )}
       </div>
