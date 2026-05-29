@@ -380,6 +380,22 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
     setTaskTitle(''); setTaskDue('');
   }
 
+  async function markComplete() {
+    if (!confirm(`Mark "${project.title}" as completed?`)) return;
+    await supabase.from('projects').update({ completed_at: new Date().toISOString(), status: 'closed' }).eq('id', project.id);
+    qc.invalidateQueries({ queryKey: ['vg', 'projects'] });
+    onClose();
+  }
+
+  async function deleteProject() {
+    if (!confirm(`Permanently delete "${project.title}"? This cannot be undone.`)) return;
+    await supabase.from('project_tasks').delete().eq('project_id', project.id);
+    await supabase.from('project_bom_items').delete().eq('project_id', project.id);
+    await supabase.from('projects').delete().eq('id', project.id);
+    qc.invalidateQueries({ queryKey: ['vg', 'projects'] });
+    onClose();
+  }
+
   const creator = (members || []).find(m => m.user_id === project.created_by);
   const color = getMemberColor(creator, members);
   const isCompleted = !!project.completed_at;
@@ -408,7 +424,13 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
               {isCompleted && (
                 <button onClick={() => setShowCompletion(true)} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.12)] text-[#6b7f5e] border border-[rgba(107,127,94,0.25)] shadow-none hover:scale-100">Summary</button>
               )}
+              {!isCompleted && isAdmin && (
+                <button onClick={markComplete} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">✓ Complete</button>
+              )}
               <button onClick={() => onEdit(project)} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.25)] text-[rgba(75,71,65,0.6)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.08)]">Edit</button>
+              {isAdmin && (
+                <button onClick={deleteProject} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]">Delete</button>
+              )}
               <button onClick={onClose} className="bg-transparent p-0 text-xl text-[rgba(75,71,65,0.35)] shadow-none rounded-none hover:scale-100">×</button>
             </div>
           </div>
