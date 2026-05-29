@@ -169,6 +169,7 @@ export default function VgDashboard() {
   const currentUserId = session?.user?.id;
   const { year, month } = currentYearMonth();
   const [chatWith, setChatWith] = useState(null);
+  const qc = useQueryClient();
 
   const { data: members } = useQuery({
     queryKey: ['vg', 'members'],
