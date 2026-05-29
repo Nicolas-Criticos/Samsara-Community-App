@@ -197,6 +197,25 @@ export const insertBooking = async (row) => {
 export const deleteBooking = (id) =>
   supabase.from('vg_bookings').delete().eq('id', id);
 
+// Sync a calendar month's booking total into vg_accomm_sales_history
+export const syncAccommHistory = async (checkInDateStr) => {
+  const checkIn = new Date(checkInDateStr);
+  const calMonth = checkIn.getMonth() + 1;
+  const calYear = checkIn.getFullYear();
+  const fyStart = calMonth >= 3 ? calYear : calYear - 1;
+  const financialYear = `${fyStart}-${fyStart + 1}`;
+  const from = `${calYear}-${String(calMonth).padStart(2,'0')}-01`;
+  const nextM = calMonth + 1 > 12 ? 1 : calMonth + 1;
+  const nextY = calMonth + 1 > 12 ? calYear + 1 : calYear;
+  const to = `${nextY}-${String(nextM).padStart(2,'0')}-01`;
+  const { data: monthBookings } = await supabase
+    .from('vg_bookings').select('total')
+    .gte('check_in', from).lt('check_in', to);
+  const monthTotal = (monthBookings || []).reduce((t, b) => t + (b.total || 0), 0);
+  return supabase.from('vg_accomm_sales_history')
+    .upsert({ financial_year: financialYear, month: calMonth, revenue: monthTotal }, { onConflict: 'financial_year,month' });
+};
+
 // ─── Unit Costs ───────────────────────────────────────────────────────────────
 
 export const fetchUnitCosts = ({ unitId, year, month } = {}) => {

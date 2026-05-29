@@ -1,11 +1,83 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { fetchUnits, insertUnit, updateUnit, fetchBookings, insertBooking, deleteBooking, fetchUnitCosts, insertUnitCost, deleteUnitCost, fetchStaff, insertStaff, updateStaff, fetchStaffLogs, upsertStaffLog } from '../../../lib/vg/api.js';
+import { fetchUnits, insertUnit, updateUnit, fetchBookings, insertBooking, deleteBooking, fetchUnitCosts, insertUnitCost, deleteUnitCost, fetchStaff, insertStaff, updateStaff, fetchStaffLogs, upsertStaffLog, syncAccommHistory } from '../../../lib/vg/api.js';
 import { formatCurrency, formatDate, currentYearMonth, prevMonth, nextMonth, daysInMonth, capitalize } from '../../../lib/vg/helpers.js';
 import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { useAuthSession } from '../../../hooks/useAuthSession.js';
 import { MONTH_SHORT as MS } from '../../../lib/vg/constants.js';
+
+// ─── Booking Calendar ──────────────────────────────────────────────────────
+
+const UNIT_COLORS = ['#6b7f5e','#c2a66d','#7a8f9e','#a07060','#8a7fae','#5a8a7a'];
+
+function BookingCalendar({ year, month, bookings, units, isAdmin, onDelete }) {
+  const days = daysInMonth(year, month);
+  const firstDow = new Date(year, month - 1, 1).getDay(); // 0=Sun
+  const unitColorMap = Object.fromEntries((units || []).map((u, i) => [u.id, UNIT_COLORS[i % UNIT_COLORS.length]]));
+
+  // For each day, which bookings cover it?
+  function bookingsForDay(day) {
+    const d = new Date(year, month - 1, day);
+    return (bookings || []).filter(b => {
+      const ci = new Date(b.check_in);
+      const co = new Date(b.check_out);
+      return d >= ci && d < co;
+    });
+  }
+
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= days; d++) cells.push(d);
+
+  return (
+    <div className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
+      <p className="text-[0.6rem] uppercase tracking-[0.2em] text-[rgba(75,71,65,0.45)] mb-4">Bookings Calendar</p>
+      {/* Legend */}
+      {(units || []).length > 0 && (
+        <div className="flex flex-wrap gap-3 mb-4">
+          {(units || []).map((u, i) => (
+            <div key={u.id} className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ background: UNIT_COLORS[i % UNIT_COLORS.length] }} />
+              <span className="text-[0.65rem] text-[rgba(75,71,65,0.6)]">{u.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-0.5 mb-1">
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+          <div key={d} className="text-center text-[0.58rem] uppercase tracking-[0.08em] text-[rgba(75,71,65,0.4)] py-1">{d}</div>
+        ))}
+      </div>
+      {/* Cells */}
+      <div className="grid grid-cols-7 gap-0.5">
+        {cells.map((day, idx) => {
+          if (!day) return <div key={`empty-${idx}`} />;
+          const dayBookings = bookingsForDay(day);
+          const isToday = new Date().getDate() === day && new Date().getMonth() + 1 === month && new Date().getFullYear() === year;
+          return (
+            <div key={day} className={`min-h-[52px] rounded-lg p-1 ${
+              isToday ? 'bg-[rgba(107,127,94,0.12)] ring-1 ring-[rgba(107,127,94,0.4)]' : 'bg-[rgba(122,112,94,0.04)]'
+            }`}>
+              <span className={`text-[0.65rem] font-medium block mb-0.5 ${
+                isToday ? 'text-[#6b7f5e]' : 'text-[rgba(75,71,65,0.5)]'
+              }`}>{day}</span>
+              {dayBookings.map(b => (
+                <div key={b.id}
+                  className="text-[0.55rem] leading-tight rounded px-1 py-0.5 mb-0.5 text-white truncate"
+                  style={{ background: unitColorMap[b.unit_id] || '#6b7f5e' }}
+                  title={`${b.guest_name} — ${b.vg_units?.name}`}
+                >
+                  {b.guest_name.split(' ')[0]}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─── Unit Card ─────────────────────────────────────────────────────────────
 
@@ -222,11 +294,13 @@ export default function VgAccommodation() {
   function onPrev() { const p = prevMonth(year, month); setYear(p.year); setMonth(p.month); }
   function onNext() { const n = nextMonth(year, month); setYear(n.year); setMonth(n.month); }
 
-  // Chart data: nights booked per unit this month
-  const occupancyChartData = (units || []).map(u => ({
-    name: u.name,
-    nights: (bookings || []).filter(b => b.unit_id === u.id).reduce((t, b) => t + (b.nights || 0), 0),
-  }));
+  async function handleDeleteBooking(booking) {
+    if (!confirm(`Delete booking for ${booking.guest_name}? This cannot be undone.`)) return;
+    await deleteBooking(booking.id);
+    // Sync history: recalculate month total after deletion
+    try { await syncAccommHistory(booking.check_in); } catch (e) { console.warn('sync failed', e); }
+    qc.invalidateQueries({ queryKey: ['vg', 'bookings'] });
+  }
 
   return (
     <div className="min-h-screen">
@@ -284,25 +358,8 @@ export default function VgAccommodation() {
           )}
         </section>
 
-        {/* Occupancy chart */}
-        {(units || []).length > 0 && (
-          <section>
-            <p className="text-[0.6rem] uppercase tracking-[0.2em] text-[rgba(75,71,65,0.45)] mb-4">Occupancy — Nights Booked</p>
-            <div className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
-              <div style={{ height: 180 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={occupancyChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.12)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
-                    <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
-                    <Tooltip contentStyle={{ background: 'rgba(255,252,247,0.97)', border: '1px solid rgba(122,112,94,0.2)', borderRadius: 12, fontSize: 12 }} />
-                    <Bar dataKey="nights" fill="#6b7f5e" radius={[6, 6, 0, 0]} name="Nights Booked" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </section>
-        )}
+        {/* Booking Calendar */}
+        <BookingCalendar year={year} month={month} bookings={bookings} units={units} isAdmin={isAdmin} />
 
         {/* New Booking */}
         <section className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-6">
@@ -358,12 +415,18 @@ export default function VgAccommodation() {
             <div className="mt-5 pt-4 border-t border-[rgba(122,112,94,0.1)]">
               <p className="text-[0.6rem] uppercase tracking-[0.12em] text-[rgba(75,71,65,0.4)] mb-3">Bookings This Month</p>
               {(bookings || []).map(b => (
-                <div key={b.id} className="flex items-center justify-between py-2.5 border-b border-[rgba(122,112,94,0.08)] last:border-0">
-                  <div>
+                <div key={b.id} className="flex items-center justify-between py-2.5 border-b border-[rgba(122,112,94,0.08)] last:border-0 gap-3">
+                  <div className="flex-1 min-w-0">
                     <p className="text-[0.82rem] font-medium text-[#2b2b2b]">{b.guest_name}</p>
                     <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{b.vg_units?.name} · {formatDate(b.check_in)} → {formatDate(b.check_out)} · {b.nights}n</p>
                   </div>
-                  {isAdmin && <p className="text-[0.82rem] font-light text-[#6b7f5e]">{formatCurrency(b.total)}</p>}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {isAdmin && <p className="text-[0.82rem] font-light text-[#6b7f5e]">{formatCurrency(b.total)}</p>}
+                    <button
+                      onClick={() => handleDeleteBooking(b)}
+                      className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]"
+                    >Delete</button>
+                  </div>
                 </div>
               ))}
             </div>
