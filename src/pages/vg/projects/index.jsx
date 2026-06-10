@@ -403,10 +403,10 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
   return (
     <>
     <div className="fixed inset-0 z-40 flex items-start justify-end bg-[rgba(44,42,37,0.25)] backdrop-blur-[2px]" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[rgba(255,252,247,0.99)] w-full max-w-md h-full overflow-y-auto border-l border-[rgba(122,112,94,0.18)] shadow-2xl flex flex-col">
+      <div className="bg-[rgba(255,252,247,0.99)] w-full sm:max-w-md h-full overflow-y-auto border-l border-[rgba(122,112,94,0.18)] shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-[rgba(255,252,247,0.97)] backdrop-blur-sm border-b border-[rgba(122,112,94,0.1)] px-6 py-5 z-10">
-          <div className="flex items-start justify-between gap-3">
+        <div className="sticky top-0 bg-[rgba(255,252,247,0.97)] backdrop-blur-sm border-b border-[rgba(122,112,94,0.1)] px-4 sm:px-6 py-4 sm:py-5 z-10">
+          <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
@@ -420,23 +420,24 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
                 {creator && <span className="text-[0.65rem] text-[rgba(75,71,65,0.45)]">by {creator.username || creator.name}</span>}
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {isCompleted && (
-                <button onClick={() => setShowCompletion(true)} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.12)] text-[#6b7f5e] border border-[rgba(107,127,94,0.25)] shadow-none hover:scale-100">Summary</button>
-              )}
-              {!isCompleted && isAdmin && (
-                <button onClick={markComplete} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">✓ Complete</button>
-              )}
-              <button onClick={() => onEdit(project)} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.25)] text-[rgba(75,71,65,0.6)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.08)]">Edit</button>
-              {isAdmin && (
-                <button onClick={deleteProject} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]">Delete</button>
-              )}
-              <button onClick={onClose} className="bg-transparent p-0 text-xl text-[rgba(75,71,65,0.35)] shadow-none rounded-none hover:scale-100">×</button>
-            </div>
+            <button onClick={onClose} className="bg-transparent p-1 text-xl text-[rgba(75,71,65,0.35)] shadow-none rounded-none hover:scale-100 shrink-0">×</button>
+          </div>
+          {/* Action buttons — wrap on mobile */}
+          <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+            {isCompleted && (
+              <button onClick={() => setShowCompletion(true)} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.12)] text-[#6b7f5e] border border-[rgba(107,127,94,0.25)] shadow-none hover:scale-100">Summary</button>
+            )}
+            {!isCompleted && isAdmin && (
+              <button onClick={markComplete} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">✓ Complete</button>
+            )}
+            <button onClick={() => onEdit(project)} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.25)] text-[rgba(75,71,65,0.6)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.08)]">Edit</button>
+            {isAdmin && (
+              <button onClick={deleteProject} className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]">Delete</button>
+            )}
           </div>
         </div>
 
-        <div className="flex-1 px-6 py-5 space-y-6">
+        <div className="flex-1 px-4 sm:px-6 py-5 space-y-6">
           {/* Progress */}
           <div>
             <div className="flex justify-between text-[0.58rem] uppercase tracking-[0.12em] text-[rgba(75,71,65,0.45)] mb-1.5">
@@ -641,44 +642,49 @@ export default function VgProjects() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="border-b border-[rgba(122,112,94,0.12)] bg-[rgba(255,252,247,0.8)] backdrop-blur-sm px-6 py-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="border-b border-[rgba(122,112,94,0.12)] bg-[rgba(255,252,247,0.8)] backdrop-blur-sm px-4 sm:px-6 py-4 sm:py-5">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-[0.6rem] uppercase tracking-[0.2em] text-[rgba(75,71,65,0.45)] mb-1">VrischGewagt</p>
             <h1 className="text-xl font-light text-[#2b2b2b] tracking-wide">Projects</h1>
           </div>
-          <button onClick={() => setProjectModal({ project: null })} className="rounded-full px-5 py-2 text-[0.65rem] uppercase tracking-[0.12em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">+ New</button>
+          <button onClick={() => setProjectModal({ project: null })} className="rounded-full px-4 py-2 text-[0.65rem] uppercase tracking-[0.12em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">+ New</button>
         </div>
 
         {/* Filters row */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex gap-1">
-            {['active','completed','all','archived'].map(f => (
-              <button key={f} onClick={() => setFilter(f)}
-                className={`rounded-full px-3 py-1.5 text-[0.65rem] uppercase tracking-[0.1em] transition-all shadow-none hover:scale-100 ${
-                  filter === f ? 'bg-[rgba(122,112,94,0.18)] text-[rgba(43,43,43,0.9)]' : 'bg-transparent text-[rgba(75,71,65,0.45)] hover:bg-[rgba(122,112,94,0.08)]'
-                }`}>{f}</button>
-            ))}
-          </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          {/* Status filters + member filters */}
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <div className="flex gap-1 shrink-0">
+              {['active','completed','all','archived'].map(f => (
+                <button key={f} onClick={() => setFilter(f)}
+                  className={`rounded-full px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.08em] transition-all shadow-none hover:scale-100 whitespace-nowrap ${
+                    filter === f ? 'bg-[rgba(122,112,94,0.18)] text-[rgba(43,43,43,0.9)]' : 'bg-transparent text-[rgba(75,71,65,0.45)] hover:bg-[rgba(122,112,94,0.08)]'
+                  }`}>{f}</button>
+              ))}
+            </div>
 
-          {/* Member filter */}
-          <div className="flex gap-1 ml-2 border-l border-[rgba(122,112,94,0.15)] pl-3">
-            {(members || []).map((m, i) => {
-              const color = getMemberColor(m, members);
-              const active = memberFilter === m.user_id;
-              return (
-                <button key={m.id} onClick={() => setMemberFilter(active ? null : m.user_id)}
-                  title={m.username || m.name}
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[0.55rem] font-bold text-white transition-all shadow-none hover:scale-110 ${active ? 'ring-2 ring-offset-1' : 'opacity-60 hover:opacity-100'}`}
-                  style={{ backgroundColor: color, ringColor: active ? color : undefined }}>
-                  {(m.name || m.username || '?').charAt(0).toUpperCase()}
-                </button>
-              );
-            })}
+            {/* Member filter */}
+            {(members || []).length > 0 && (
+              <div className="flex gap-1 border-l border-[rgba(122,112,94,0.15)] pl-2 shrink-0">
+                {(members || []).map((m) => {
+                  const color = getMemberColor(m, members);
+                  const active = memberFilter === m.user_id;
+                  return (
+                    <button key={m.id} onClick={() => setMemberFilter(active ? null : m.user_id)}
+                      title={m.username || m.name}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-[0.5rem] font-bold text-white transition-all shadow-none hover:scale-110 ${active ? 'ring-2 ring-offset-1' : 'opacity-60 hover:opacity-100'}`}
+                      style={{ backgroundColor: color }}>
+                      {(m.name || m.username || '?').charAt(0).toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* View toggle */}
-          <div className="flex gap-1 ml-auto">
+          <div className="flex gap-1 sm:ml-auto">
             {[['cards','⊞'],['table','☰'],['gantt','▬']].map(([v, icon]) => (
               <button key={v} onClick={() => setView(v)}
                 className={`rounded-lg w-8 h-8 flex items-center justify-center text-sm transition-all shadow-none hover:scale-100 ${
@@ -689,7 +695,7 @@ export default function VgProjects() {
         </div>
       </div>
 
-      <div className="p-6 max-w-6xl space-y-5">
+      <div className="p-4 sm:p-6 max-w-6xl space-y-5">
         {/* Stats */}
         <div className="flex gap-4 text-center">
           <div className="rounded-xl border border-[rgba(122,112,94,0.15)] bg-[rgba(255,252,247,0.8)] px-5 py-3">

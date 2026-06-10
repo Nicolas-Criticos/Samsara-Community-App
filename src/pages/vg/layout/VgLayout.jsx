@@ -12,7 +12,8 @@ const NAV_ITEMS = [
 ];
 
 const BOTTOM_NAV = [
-  { to: '/vg', label: 'Dashboard', icon: '⊞', exact: true },
+  { to: '/vg', label: 'Home', icon: '⊞', exact: true },
+  { to: '/vg/projects', label: 'Projects', icon: '◈' },
   { to: '/vg/animals', label: 'Animals', icon: '🐑' },
   { to: '/vg/produce', label: 'Produce', icon: '🫒' },
   { to: '/vg/accommodation', label: 'Rooms', icon: '🏡' },
@@ -90,20 +91,20 @@ export default function VgLayout() {
       </main>
 
       {/* ── Mobile Bottom Nav ── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 flex items-center justify-around border-t border-[rgba(122,112,94,0.15)] bg-[rgba(255,252,247,0.96)] backdrop-blur-sm pb-safe">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 flex items-center justify-around border-t border-[rgba(122,112,94,0.15)] bg-[rgba(255,252,247,0.96)] backdrop-blur-sm pb-safe overflow-x-auto">
         {BOTTOM_NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.exact}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 py-2.5 px-3 text-center transition-all ${
+              `flex flex-col items-center gap-0.5 py-2 px-2 min-w-[3.5rem] text-center transition-all ${
                 isActive ? 'text-[rgba(43,43,43,0.9)]' : 'text-[rgba(75,71,65,0.5)]'
               }`
             }
           >
-            <span className="text-lg leading-none">{item.icon}</span>
-            <span className="text-[0.52rem] uppercase tracking-[0.1em]">{item.label}</span>
+            <span className="text-base leading-none">{item.icon}</span>
+            <span className="text-[0.48rem] uppercase tracking-[0.08em] mt-0.5 whitespace-nowrap">{item.label}</span>
           </NavLink>
         ))}
       </nav>

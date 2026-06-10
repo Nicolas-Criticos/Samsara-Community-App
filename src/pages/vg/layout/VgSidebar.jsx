@@ -3,7 +3,7 @@ import vgLogoUrl from "../../../assets/images/vg-logo.png";
 
 const NAV_ITEMS = [
   { to: "/vg", end: true, icon: "🏠", label: "Dashboard" },
-  { to: "/projects/vrischgewagt", end: false, icon: "📋", label: "Projects", external: true },
+  { to: "/vg/projects", end: false, icon: "📋", label: "Projects" },
   { to: "/vg/animals", end: false, icon: "🐑", label: "Animals" },
   { to: "/vg/produce", end: false, icon: "🫒", label: "Produce" },
   { to: "/vg/accommodation", end: false, icon: "🏡", label: "Accommodation" },
