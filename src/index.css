@@ -198,14 +198,9 @@
   }
 
   body {
-    @apply overflow-x-hidden font-sans antialiased;
+    @apply font-sans antialiased;
     background: #f6f3ee;
     color: #2b2b2b;
-  }
-
-  html,
-  body {
-    overflow-x: hidden;
   }
 
   #root {
@@ -247,8 +242,4 @@
   }
 }
 
-@media (max-width: 768px) {
-  body {
-    overflow-x: hidden;
-  }
-}
+
