@@ -259,6 +259,7 @@ export default function VgAccommodation() {
   const [costForm, setCostForm] = useState({ unit_id: '', date: new Date().toISOString().slice(0,10), description: '', amount: '', category: 'maintenance' });
   const [bookSaving, setBookSaving] = useState(false);
   const [costSaving, setCostSaving] = useState(false);
+  const [costSaved, setCostSaved] = useState(false);
 
   const { data: units } = useQuery({ queryKey: ['vg', 'units'], queryFn: () => fetchUnits().then(r => r.data || []) });
   const { data: bookings } = useQuery({ queryKey: ['vg', 'bookings', year, month], queryFn: () => fetchBookings({ year, month }).then(r => r.data || []) });
@@ -288,7 +289,14 @@ export default function VgAccommodation() {
       await insertUnitCost({ ...costForm, amount: Number(costForm.amount), created_by: session?.user?.id });
       qc.invalidateQueries({ queryKey: ['vg', 'unitCosts'] });
       setCostForm(f => ({ ...f, description: '', amount: '' }));
+      setCostSaved(true);
+      setTimeout(() => setCostSaved(false), 3000);
     } finally { setCostSaving(false); }
+  }
+
+  async function handleDeleteCost(id) {
+    await deleteUnitCost(id);
+    qc.invalidateQueries({ queryKey: ['vg', 'unitCosts'] });
   }
 
   function onPrev() { const p = prevMonth(year, month); setYear(p.year); setMonth(p.month); }
@@ -473,13 +481,21 @@ export default function VgAccommodation() {
               <button type="submit" disabled={costSaving} className="rounded-full px-6 py-2.5 text-[0.68rem] uppercase tracking-[0.12em] bg-[rgba(107,127,94,0.85)] text-white">
                 {costSaving ? 'Logging…' : 'Log Cost'}
               </button>
+              {costSaved && <p className="text-[0.75rem] text-[#6b7f5e] mt-2">✓ Cost logged</p>}
             </form>
             {(unitCosts || []).length > 0 && (
               <div className="mt-4 pt-4 border-t border-[rgba(122,112,94,0.1)] space-y-2">
-                {(unitCosts||[]).slice(0,6).map(c => (
-                  <div key={c.id} className="flex justify-between text-[0.8rem] py-1.5 border-b border-[rgba(122,112,94,0.06)]">
-                    <div><p className="text-[#2b2b2b]">{c.description}</p><p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{c.vg_units?.name || 'General'} · {formatDate(c.date)}</p></div>
-                    <p className="text-[#c2a66d]">{formatCurrency(c.amount)}</p>
+                {(unitCosts||[]).map(c => (
+                  <div key={c.id} className="flex items-center justify-between text-[0.8rem] py-1.5 border-b border-[rgba(122,112,94,0.06)] gap-3">
+                    <div className="flex-1 min-w-0"><p className="text-[#2b2b2b]">{c.description}</p><p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{c.vg_units?.name || 'General'} · {formatDate(c.date)}</p></div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <p className="text-[#c2a66d]">{formatCurrency(c.amount)}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCost(c.id)}
+                        className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]"
+                      >Delete</button>
+                    </div>
                   </div>
                 ))}
               </div>

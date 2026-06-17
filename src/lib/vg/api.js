@@ -67,6 +67,9 @@ export const insertProduct = (row) =>
 export const updateProduct = (id, patch) =>
   supabase.from('vg_products').update(patch).eq('id', id).select().single();
 
+export const deleteProduct = (id) =>
+  supabase.from('vg_products').update({ active: false }).eq('id', id);
+
 // ─── Product Costs ────────────────────────────────────────────────────────────
 
 export const fetchProductCosts = (productId) =>
@@ -87,11 +90,12 @@ export const replaceProductCosts = async (productId, components) => {
 
 export const fetchSales = ({ category, year, month } = {}) => {
   let q = supabase.from('vg_sales')
-    .select('*, vg_products(name, category)')
+    .select('*, vg_products(name, category, pricing_type)')
     .order('date', { ascending: false });
   if (year && month) {
     const from = `${year}-${String(month).padStart(2,'0')}-01`;
-    const to = `${year}-${String(month).padStart(2,'0')}-31`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const to = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
     q = q.gte('date', from).lte('date', to);
   }
   return q;
@@ -109,6 +113,25 @@ export const insertSale = (row) =>
 export const deleteSale = (id) =>
   supabase.from('vg_sales').delete().eq('id', id);
 
+export const insertSaleOrder = (row) =>
+  supabase.from("vg_sale_orders").insert(row).select().single();
+
+export const insertSalesBulk = (rows) =>
+  supabase.from("vg_sales").insert(rows).select();
+
+export const fetchSaleOrders = ({ year, month } = {}) => {
+  let q = supabase.from("vg_sale_orders")
+    .select("*, vg_sales(*, vg_products(name, category, pricing_type))")
+    .order("date", { ascending: false });
+  if (year && month) {
+    const from = `${year}-${String(month).padStart(2,"0")}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const to = `${year}-${String(month).padStart(2,"0")}-${String(lastDay).padStart(2,"0")}`;
+    q = q.gte("date", from).lte("date", to);
+  }
+  return q;
+};
+
 // ─── Expenses ─────────────────────────────────────────────────────────────────
 
 export const fetchExpenses = ({ category, year, month } = {}) => {
@@ -118,7 +141,8 @@ export const fetchExpenses = ({ category, year, month } = {}) => {
   if (category) q = q.eq('category', category);
   if (year && month) {
     const from = `${year}-${String(month).padStart(2,'0')}-01`;
-    const to = `${year}-${String(month).padStart(2,'0')}-31`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const to = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
     q = q.gte('date', from).lte('date', to);
   }
   return q;
@@ -223,7 +247,8 @@ export const fetchUnitCosts = ({ unitId, year, month } = {}) => {
   if (unitId) q = q.eq('unit_id', unitId);
   if (year && month) {
     const from = `${year}-${String(month).padStart(2,'0')}-01`;
-    const to = `${year}-${String(month).padStart(2,'0')}-31`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const to = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
     q = q.gte('date', from).lte('date', to);
   }
   return q;

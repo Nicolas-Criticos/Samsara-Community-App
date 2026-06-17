@@ -14,7 +14,8 @@ export function useCurrentMember() {
       return data;
     },
     enabled: !!userId,
-    staleTime: 60_000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 

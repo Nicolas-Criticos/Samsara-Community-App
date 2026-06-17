@@ -92,7 +92,7 @@ export default function VgHistory() {
   const prevFY = () => { const y = parseFY(financialYear); setFinancialYear(`${y-1}-${y}`); };
   const nextFY = () => { const y = parseFY(financialYear); setFinancialYear(`${y+1}-${y+2}`); };
 
-  const [sectionOrder, setSectionOrder] = useState(ALL_SECTIONS.map(s => s.key));
+  const [sectionOrder, setSectionOrder] = useState(["total", ...ALL_SECTIONS.filter(s => s.key !== "total").map(s => s.key)]);
   const [collapsed, setCollapsed] = useState({});
 
   function moveUp(idx) {
