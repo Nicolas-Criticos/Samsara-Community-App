@@ -277,6 +277,9 @@ export const insertStaff = (row) =>
 export const updateStaff = (id, patch) =>
   supabase.from('vg_staff').update(patch).eq('id', id).select().single();
 
+export const deleteStaff = (id) =>
+  supabase.from('vg_staff').update({ active: false }).eq('id', id);
+
 // ─── Staff Logs ───────────────────────────────────────────────────────────────
 
 export const fetchStaffLogs = (year, month) =>

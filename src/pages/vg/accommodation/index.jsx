@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchUnits, insertUnit, updateUnit, fetchBookings, insertBooking, updateBooking, deleteBooking, fetchUnitCosts, insertUnitCost, deleteUnitCost, fetchStaff, insertStaff, updateStaff, fetchStaffLogs, upsertStaffLog, syncAccommHistory } from '../../../lib/vg/api.js';
+import { fetchUnits, insertUnit, updateUnit, fetchBookings, insertBooking, updateBooking, deleteBooking, fetchUnitCosts, insertUnitCost, deleteUnitCost, fetchStaff, insertStaff, updateStaff, deleteStaff, fetchStaffLogs, upsertStaffLog, syncAccommHistory } from '../../../lib/vg/api.js';
 import { formatCurrency, formatDate, currentYearMonth, prevMonth, nextMonth, daysInMonth, capitalize } from '../../../lib/vg/helpers.js';
 import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { useAuthSession } from '../../../hooks/useAuthSession.js';
@@ -305,6 +305,7 @@ function StaffLogRow({ staff, log, year, month, isAdmin }) {
           </div>
         )}
         <button onClick={save} disabled={saving} className="rounded-full px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">{saving ? '…' : 'Save'}</button>
+        {isAdmin && <button onClick={async () => { if (confirm(`Remove ${staff.name}?`)) { await deleteStaff(staff.id); qc.invalidateQueries({ queryKey: ['vg', 'staff'] }); }}} className="rounded-full px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]">Remove</button>}
       </div>
     </div>
   );
