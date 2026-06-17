@@ -361,6 +361,7 @@ export default function VgAccommodation() {
   const [month, setMonth] = useState(now.month);
   const [unitModal, setUnitModal] = useState(null);
   const [staffModal, setStaffModal] = useState(null);
+  const [editBookingModal, setEditBookingModal] = useState(null);
   const [bookingForm, setBookingForm] = useState({ unit_id: '', guest_name: '', check_in: '', check_out: '', rate_per_night: '', notes: '' });
   const [costForm, setCostForm] = useState({ unit_id: '', date: new Date().toISOString().slice(0,10), description: '', amount: '', category: 'maintenance' });
   const [bookSaving, setBookSaving] = useState(false);
@@ -394,7 +395,9 @@ export default function VgAccommodation() {
     e.preventDefault();
     setCostSaving(true);
     try {
-      await insertUnitCost({ ...costForm, amount: Number(costForm.amount), created_by: session?.user?.id });
+      const costPayload = { ...costForm, amount: Number(costForm.amount), created_by: session?.user?.id };
+      if (!costPayload.unit_id) delete costPayload.unit_id; // null UUID not empty string
+      await insertUnitCost(costPayload);
       qc.invalidateQueries({ queryKey: ['vg', 'unitCosts'] });
       setCostForm(f => ({ ...f, description: '', amount: '' }));
       setCostSaved(true);
