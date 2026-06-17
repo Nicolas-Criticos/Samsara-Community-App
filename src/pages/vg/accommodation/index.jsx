@@ -467,9 +467,10 @@ export default function VgAccommodation() {
                 </div>
               </button>
             </div>
-            {showCostsList && (unitCosts || []).length > 0 && (
+            {showCostsList && (
               <div className="rounded-2xl border border-[rgba(122,112,94,0.15)] bg-[rgba(255,252,247,0.95)] p-5 mt-4 animate-in slide-in-from-top-2">
                 <p className="text-[0.6rem] uppercase tracking-[0.12em] text-[rgba(75,71,65,0.4)] mb-3">Maintenance Costs — {MS[month-1]} {year}</p>
+                {!(unitCosts || []).length && <p className="text-[0.78rem] text-[rgba(75,71,65,0.4)] italic">No costs logged this month.</p>}
                 {(unitCosts || []).map(c => (
                   <div key={c.id} className="flex items-center justify-between text-[0.8rem] py-2 border-b border-[rgba(122,112,94,0.06)] last:border-0 gap-3">
                     <div className="flex-1 min-w-0">
@@ -588,6 +589,10 @@ export default function VgAccommodation() {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     {isAdmin && <p className="text-[0.82rem] font-light text-[#6b7f5e]">{formatCurrency(b.total)}</p>}
+                    {isAdmin && <button
+                      onClick={() => setEditBookingModal(b)}
+                      className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.3)] text-[rgba(75,71,65,0.6)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.1)]"
+                    >Edit</button>}
                     <button
                       onClick={() => handleDeleteBooking(b)}
                       className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]"
