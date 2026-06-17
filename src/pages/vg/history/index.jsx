@@ -39,7 +39,9 @@ function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCosts
       costs = (unitCostsData || []).filter(c => inMonth(c.date)).reduce((t, c) => t + c.amount, 0);
     } else if (category === 'staff') {
       const logs = (staffLogsData || []).filter(l => l.month === month);
-      costs = logs.reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0)), 0);
+      const staffCost = logs.reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0)), 0);
+      const maintCost = (unitCostsData || []).filter(c => inMonth(c.date)).reduce((t, c) => t + c.amount, 0);
+      costs = staffCost + maintCost;
       revenue = 0;
     } else if (category === 'total') {
       // Produce revenue (all categories)
@@ -72,7 +74,7 @@ const ALL_SECTIONS = [
   { key: 'total', title: 'Farm Total', showRevenue: true },
   { key: 'farm_produce', title: 'Farm Produce', special: 'produce' },
   { key: 'accommodation', title: 'Accommodation', special: 'accommodation' },
-  { key: 'staff', title: 'Staff Costs', showRevenue: false },
+  { key: 'staff', title: 'Costs (Staff + Maintenance)', showRevenue: false },
 ];
 
 export default function VgHistory() {
