@@ -218,6 +218,9 @@ export const insertBooking = async (row) => {
   return result;
 };
 
+export const updateBooking = (id, patch) =>
+  supabase.from('vg_bookings').update(patch).eq('id', id).select().single();
+
 export const deleteBooking = (id) =>
   supabase.from('vg_bookings').delete().eq('id', id);
 

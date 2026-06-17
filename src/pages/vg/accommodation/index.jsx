@@ -1,10 +1,104 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchUnits, insertUnit, updateUnit, fetchBookings, insertBooking, deleteBooking, fetchUnitCosts, insertUnitCost, deleteUnitCost, fetchStaff, insertStaff, updateStaff, fetchStaffLogs, upsertStaffLog, syncAccommHistory } from '../../../lib/vg/api.js';
+import { fetchUnits, insertUnit, updateUnit, fetchBookings, insertBooking, updateBooking, deleteBooking, fetchUnitCosts, insertUnitCost, deleteUnitCost, fetchStaff, insertStaff, updateStaff, fetchStaffLogs, upsertStaffLog, syncAccommHistory } from '../../../lib/vg/api.js';
 import { formatCurrency, formatDate, currentYearMonth, prevMonth, nextMonth, daysInMonth, capitalize } from '../../../lib/vg/helpers.js';
 import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { useAuthSession } from '../../../hooks/useAuthSession.js';
 import { MONTH_SHORT as MS } from '../../../lib/vg/constants.js';
+
+// ─── Booking Edit Modal ────────────────────────────────────────────────────
+
+function BookingEditModal({ booking, units, onClose, onSaved }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    guest_name: booking.guest_name || '',
+    unit_id: booking.unit_id || '',
+    check_in: booking.check_in || '',
+    check_out: booking.check_out || '',
+    rate_per_night: booking.rate_per_night || '',
+    notes: booking.notes || '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const nights = form.check_in && form.check_out
+    ? Math.max(0, Math.round((new Date(form.check_out) - new Date(form.check_in)) / 86400000))
+    : 0;
+  const total = nights * Number(form.rate_per_night || 0);
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await updateBooking(booking.id, {
+        guest_name: form.guest_name,
+        unit_id: form.unit_id || null,
+        check_in: form.check_in,
+        check_out: form.check_out,
+        rate_per_night: Number(form.rate_per_night),
+        nights,
+        total,
+        notes: form.notes,
+      });
+      qc.invalidateQueries({ queryKey: ['vg', 'bookings'] });
+      // Sync history for both old and new check_in dates
+      try {
+        await syncAccommHistory(booking.check_in);
+        if (form.check_in !== booking.check_in) await syncAccommHistory(form.check_in);
+      } catch (e) { console.warn('history sync failed', e); }
+      onSaved();
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(44,42,37,0.4)] backdrop-blur-sm p-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <form onSubmit={handleSave} className="bg-[rgba(255,252,247,0.98)] rounded-2xl border border-[rgba(122,112,94,0.2)] p-8 w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-light">Edit Booking</h2>
+          <button type="button" onClick={onClose} className="bg-transparent p-0 text-2xl text-[rgba(75,71,65,0.4)] shadow-none rounded-none hover:scale-100">×</button>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mb-5">
+          <div className="col-span-2">
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Guest Name</label>
+            <input type="text" value={form.guest_name} onChange={e => setForm(f => ({ ...f, guest_name: e.target.value }))} required
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Unit</label>
+            <select value={form.unit_id} onChange={e => setForm(f => ({ ...f, unit_id: e.target.value }))}
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none">
+              <option value="">— select unit —</option>
+              {(units || []).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Check In</label>
+            <input type="date" value={form.check_in} onChange={e => setForm(f => ({ ...f, check_in: e.target.value }))} required
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+          </div>
+          <div>
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Check Out</label>
+            <input type="date" value={form.check_out} onChange={e => setForm(f => ({ ...f, check_out: e.target.value }))} required
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+          </div>
+          <div>
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Rate (R/night)</label>
+            <input type="number" min="0" step="0.01" value={form.rate_per_night} onChange={e => setForm(f => ({ ...f, rate_per_night: e.target.value }))} required
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+          </div>
+          <div className="flex items-end pb-2">
+            <p className="text-[0.75rem] text-[rgba(75,71,65,0.5)]">{nights} nights · <span className="text-[#6b7f5e] font-medium">{formatCurrency(total)}</span></p>
+          </div>
+          <div className="col-span-2">
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Notes</label>
+            <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+          </div>
+        </div>
+        <button type="submit" disabled={saving} className="w-full rounded-full py-3 text-[0.7rem] uppercase tracking-[0.14em] bg-[rgba(107,127,94,0.85)] text-white">{saving ? 'Saving…' : 'Save Changes'}</button>
+      </form>
+    </div>
+  );
+}
 
 // ─── Booking Calendar ──────────────────────────────────────────────────────
 
@@ -592,6 +686,7 @@ export default function VgAccommodation() {
 
       {unitModal && <UnitModal unit={unitModal.unit} onClose={() => setUnitModal(null)} onSaved={() => setUnitModal(null)} />}
       {staffModal && <StaffModal staff={staffModal.staff} onClose={() => setStaffModal(null)} onSaved={() => setStaffModal(null)} />}
+      {editBookingModal && <BookingEditModal booking={editBookingModal} units={units} onClose={() => setEditBookingModal(null)} onSaved={() => setEditBookingModal(null)} />}
     </div>
   );
 }
