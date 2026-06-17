@@ -1,7 +1,22 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { fetchSales, fetchExpenses, fetchBookings, fetchBookingsForYear, fetchUnitCosts, fetchStaffLogsForYear } from '../../../lib/vg/api.js';
+import { fetchSales, fetchExpenses, fetchUnitCosts, fetchStaffLogsForYear } from '../../../lib/vg/api.js';
+import { supabase } from '../../../lib/supabase.js';
+
+// Build accommodation chart data from vg_accomm_sales_history for a given calendar year.
+// The history table uses financial_year (Mar-Feb) + month. We need calendar months Jan-Dec.
+// e.g. calendar year 2025: Jan-Feb comes from FY 2024-2025, Mar-Dec from FY 2025-2026.
+function buildAccommCalendarData(histRows, year) {
+  const fyPrev = `${year - 1}-${year}`;   // Jan + Feb of this year
+  const fyCurr = `${year}-${year + 1}`;   // Mar-Dec of this year
+  return Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1; // 1=Jan … 12=Dec
+    const fy = month <= 2 ? fyPrev : fyCurr;
+    const row = (histRows || []).find(r => r.financial_year === fy && r.month === month);
+    return { name: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i], revenue: row ? row.revenue : 0 };
+  });
+}
 import { formatCurrency } from '../../../lib/vg/helpers.js';
 import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { MONTH_SHORT } from '../../../lib/vg/constants.js';
@@ -19,7 +34,8 @@ function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCosts
     let costs = 0;
 
     if (category === 'accommodation') {
-      revenue = (bookingsData || []).filter(b => b.check_in >= from && b.check_in <= to).reduce((t, b) => t + (b.total || 0), 0);
+      // Note: accommodation revenue is handled separately via accomm history table
+      revenue = 0;
       costs = (unitCostsData || []).filter(c => inMonth(c.date)).reduce((t, c) => t + c.amount, 0);
     } else if (category === 'staff') {
       const logs = (staffLogsData || []).filter(l => l.month === month);
@@ -28,7 +44,8 @@ function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCosts
     } else if (category === 'total') {
       // Produce revenue (all categories)
       revenue += (salesData || []).filter(s => inMonth(s.date)).reduce((t, s) => t + s.sell_price_actual * s.units, 0);
-      // Accommodation revenue
+      // Accommodation revenue — NOTE: total section does not include historical accommodation
+      // (only live bookings for current year are in vg_bookings; historical is in separate table)
       revenue += (bookingsData || []).filter(b => b.check_in >= from && b.check_in <= to).reduce((t, b) => t + (b.total || 0), 0);
       // All expenses
       costs += (expensesData || []).filter(e => inMonth(e.date)).reduce((t, e) => t + e.amount, 0);
@@ -54,7 +71,7 @@ const PRODUCE_LABELS = { olive_oil: 'Olive Oil', olives: 'Olives', meat: 'Meat',
 const ALL_SECTIONS = [
   { key: 'total', title: 'Farm Total', showRevenue: true },
   { key: 'farm_produce', title: 'Farm Produce', special: 'produce' },
-  { key: 'accommodation', title: 'Accommodation', showRevenue: true },
+  { key: 'accommodation', title: 'Accommodation', special: 'accommodation' },
   { key: 'staff', title: 'Staff Costs', showRevenue: false },
 ];
 
@@ -91,7 +108,22 @@ export default function VgHistory() {
 
   const { data: bookings } = useQuery({
     queryKey: ['vg', 'history', 'bookings', year],
-    queryFn: () => fetchBookingsForYear(year).then(r => r.data || []),
+    queryFn: () => supabase.from('vg_bookings').select('check_in,check_out,total').gte('check_in', `${year}-01-01`).lte('check_in', `${year}-12-31`).then(r => r.data || []),
+    enabled: isAdmin,
+  });
+
+  // Accommodation historical data — stored in vg_accomm_sales_history by financial year
+  // Fetch both FYs that overlap with the selected calendar year
+  const { data: accommHist } = useQuery({
+    queryKey: ['vg', 'history', 'accomm_hist', year],
+    queryFn: async () => {
+      const fyPrev = `${year - 1}-${year}`;
+      const fyCurr = `${year}-${year + 1}`;
+      const { data } = await supabase.from('vg_accomm_sales_history')
+        .select('financial_year,month,revenue')
+        .in('financial_year', [fyPrev, fyCurr]);
+      return data || [];
+    },
     enabled: isAdmin,
   });
 
@@ -196,6 +228,37 @@ export default function VgHistory() {
                       </ResponsiveContainer>
                     </div>
                   </>
+                )}
+              </div>
+            );
+          }
+
+          // Accommodation section — uses vg_accomm_sales_history
+          if (section.special === 'accommodation') {
+            const accommData = buildAccommCalendarData(accommHist, year);
+            return (
+              <div key={key} className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <button onClick={() => toggleCollapse(key)} className="text-[0.75rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.5)] hover:scale-100 mr-1">{isCollapsed ? '▶' : '▼'}</button>
+                  <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(75,71,65,0.6)] font-semibold flex-1">{section.title}</p>
+                  <div className="flex flex-col gap-0.5">
+                    <button onClick={() => moveUp(idx)} disabled={idx === 0} className="text-[0.6rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.4)] hover:scale-100 disabled:opacity-20 leading-none">↑</button>
+                    <button onClick={() => moveDown(idx)} disabled={idx === sectionOrder.length-1} className="text-[0.6rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.4)] hover:scale-100 disabled:opacity-20 leading-none">↓</button>
+                  </div>
+                </div>
+                {!isCollapsed && (
+                  <div style={{ height: 200 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={accommData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.12)" />
+                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
+                        <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} tickFormatter={v => v >= 1000 ? `R${(v/1000).toFixed(0)}k` : `R${v}`} />
+                        <Tooltip contentStyle={{ background: 'rgba(255,252,247,0.97)', border: '1px solid rgba(122,112,94,0.2)', borderRadius: 12, fontSize: 12 }} formatter={v => formatCurrency(v)} />
+                        <Legend wrapperStyle={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                        <Line type="monotone" dataKey="revenue" stroke="#7a8f9e" strokeWidth={2} dot={false} name="Revenue" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </div>
             );
