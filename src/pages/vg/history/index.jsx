@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { fetchSales, fetchExpenses, fetchBookings, fetchUnitCosts, fetchStaffLogsForYear } from '../../../lib/vg/api.js';
+import { fetchSales, fetchExpenses, fetchBookings, fetchBookingsForYear, fetchUnitCosts, fetchStaffLogsForYear } from '../../../lib/vg/api.js';
 import { formatCurrency } from '../../../lib/vg/helpers.js';
 import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { MONTH_SHORT } from '../../../lib/vg/constants.js';
@@ -91,7 +91,7 @@ export default function VgHistory() {
 
   const { data: bookings } = useQuery({
     queryKey: ['vg', 'history', 'bookings', year],
-    queryFn: () => fetchBookings().then(r => (r.data || []).filter(b => b.check_in?.startsWith(year.toString()))),
+    queryFn: () => fetchBookingsForYear(year).then(r => r.data || []),
     enabled: isAdmin,
   });
 
