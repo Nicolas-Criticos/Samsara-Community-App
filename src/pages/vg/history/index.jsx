@@ -5,7 +5,6 @@ import { fetchSales, fetchExpenses, fetchBookings, fetchUnitCosts, fetchStaffLog
 import { formatCurrency } from '../../../lib/vg/helpers.js';
 import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { MONTH_SHORT } from '../../../lib/vg/constants.js';
-import { supabase } from '../../../lib/supabase.js';
 
 function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCostsData, staffLogsData, category) {
   return Array.from({ length: 12 }, (_, i) => {
@@ -24,7 +23,7 @@ function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCosts
       costs = (unitCostsData || []).filter(c => inMonth(c.date)).reduce((t, c) => t + c.amount, 0);
     } else if (category === 'staff') {
       const logs = (staffLogsData || []).filter(l => l.month === month);
-      costs = logs.reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0)), 0);
+      costs = logs.reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0)), 0);
       revenue = 0;
     } else if (category === 'total') {
       // Produce revenue (all categories)
@@ -37,7 +36,7 @@ function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCosts
       costs += (unitCostsData || []).filter(c => inMonth(c.date)).reduce((t, c) => t + c.amount, 0);
       // Staff
       const logs = (staffLogsData || []).filter(l => l.month === month);
-      costs += logs.reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0)), 0);
+      costs += logs.reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0)), 0);
     } else {
       // Produce category filter
       revenue = (salesData || []).filter(s => inMonth(s.date) && s.vg_products?.category === category).reduce((t, s) => t + s.sell_price_actual * s.units, 0);
@@ -48,52 +47,24 @@ function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCosts
   });
 }
 
-// Financial year: e.g. '2025-2026' runs Mar 2025 → Feb 2026
-// Months in financial year order: Mar(3), Apr(4)...Feb(2)
-const FY_MONTHS = [3,4,5,6,7,8,9,10,11,12,1,2];
-const FY_LABELS = ['Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb'];
-
-function buildAccommHistoryData(histRows) {
-  return FY_MONTHS.map((m, i) => {
-    const row = (histRows || []).find(r => r.month === m);
-    return {
-      name: FY_LABELS[i],
-      revenue: row ? row.revenue : 0,
-      costs: 0,
-      profit: row ? row.revenue : 0,
-    };
-  });
-}
+const PRODUCE_COLORS = { olive_oil: '#6b7f5e', olives: '#8b9e6b', meat: '#c2a66d', other: '#9e8b6b' };
+const PRODUCE_KEYS = ['olive_oil','olives','meat','other'];
+const PRODUCE_LABELS = { olive_oil: 'Olive Oil', olives: 'Olives', meat: 'Meat', other: 'Other' };
 
 const ALL_SECTIONS = [
-  { key: 'olive_oil', title: 'Olive Oil', showRevenue: true },
-  { key: 'olives', title: 'Olives', showRevenue: true },
-  { key: 'meat', title: 'Meat', showRevenue: true },
-  { key: 'other', title: 'Other Products', showRevenue: true },
-  { key: 'staff', title: 'Staff Costs', showRevenue: false },
   { key: 'total', title: 'Farm Total', showRevenue: true },
-  { key: 'accommodation_hist', title: 'Accommodation', showRevenue: true, special: true },
+  { key: 'farm_produce', title: 'Farm Produce', special: 'produce' },
+  { key: 'accommodation', title: 'Accommodation', showRevenue: true },
+  { key: 'staff', title: 'Staff Costs', showRevenue: false },
 ];
 
 export default function VgHistory() {
   const isAdmin = useIsAdmin();
   const [year, setYear] = useState(new Date().getFullYear());
 
-  // Financial year selector (for accommodation history)
-  const currentFY = () => {
-    const now = new Date();
-    const m = now.getMonth() + 1;
-    const y = now.getFullYear();
-    return m >= 3 ? `${y}-${y+1}` : `${y-1}-${y}`;
-  };
-  const [financialYear, setFinancialYear] = useState(currentFY);
-
-  const parseFY = (fy) => { const [a] = fy.split('-'); return parseInt(a); };
-  const prevFY = () => { const y = parseFY(financialYear); setFinancialYear(`${y-1}-${y}`); };
-  const nextFY = () => { const y = parseFY(financialYear); setFinancialYear(`${y+1}-${y+2}`); };
-
-  const [sectionOrder, setSectionOrder] = useState(["total", ...ALL_SECTIONS.filter(s => s.key !== "total").map(s => s.key)]);
+  const [sectionOrder, setSectionOrder] = useState(ALL_SECTIONS.map(s => s.key));
   const [collapsed, setCollapsed] = useState({});
+  const [visibleProduce, setVisibleProduce] = useState(Object.fromEntries(PRODUCE_KEYS.map(k => [k, true])));
 
   function moveUp(idx) {
     if (idx === 0) return;
@@ -105,19 +76,6 @@ export default function VgHistory() {
   function toggleCollapse(key) {
     setCollapsed(c => ({ ...c, [key]: !c[key] }));
   }
-
-  const { data: accommHistory } = useQuery({
-    queryKey: ['vg', 'accomm_history', financialYear],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vg_accomm_sales_history')
-        .select('*')
-        .eq('financial_year', financialYear);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: isAdmin,
-  });
 
   const { data: sales } = useQuery({
     queryKey: ['vg', 'history', 'sales', year],
@@ -185,37 +143,59 @@ export default function VgHistory() {
           if (!section) return null;
           const isCollapsed = !!collapsed[key];
 
-          if (section.special) {
-            // Accommodation with financial year selector
-            const accommChartData = buildAccommHistoryData(accommHistory);
+          if (section.special === 'produce') {
+            const produceChartData = Array.from({ length: 12 }, (_, i) => {
+              const month = i + 1;
+              const monthStr = String(month).padStart(2, '0');
+              const from = `${year}-${monthStr}-01`;
+              const to = `${year}-${monthStr}-31`;
+              const inMonth = (dateStr) => dateStr >= from && dateStr <= to;
+              const entry = { name: MONTH_SHORT[i] };
+              for (const cat of PRODUCE_KEYS) {
+                entry[cat] = (sales || []).filter(s => inMonth(s.date) && s.vg_products?.category === cat).reduce((t, s) => t + s.sell_price_actual * s.units, 0);
+              }
+              return entry;
+            });
+
             return (
               <div key={key} className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <button onClick={() => toggleCollapse(key)} className="text-[0.75rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.5)] hover:scale-100 mr-1">{isCollapsed ? '▶' : '▼'}</button>
-                  <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(75,71,65,0.6)] font-semibold flex-1">Accommodation</p>
-                  <div className="flex items-center gap-1">
-                    <button onClick={prevFY} className="rounded-lg px-2 py-1 text-xs bg-transparent text-[rgba(75,71,65,0.6)] hover:bg-[rgba(122,112,94,0.1)] shadow-none hover:scale-100">←</button>
-                    <span className="text-[0.75rem] font-light text-[#2b2b2b] w-24 text-center">{financialYear}</span>
-                    <button onClick={nextFY} className="rounded-lg px-2 py-1 text-xs bg-transparent text-[rgba(75,71,65,0.6)] hover:bg-[rgba(122,112,94,0.1)] shadow-none hover:scale-100">→</button>
-                  </div>
-                  <div className="flex flex-col gap-0.5 ml-2">
+                  <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(75,71,65,0.6)] font-semibold flex-1">{section.title}</p>
+                  <div className="flex flex-col gap-0.5">
                     <button onClick={() => moveUp(idx)} disabled={idx === 0} className="text-[0.6rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.4)] hover:scale-100 disabled:opacity-20 leading-none">↑</button>
                     <button onClick={() => moveDown(idx)} disabled={idx === sectionOrder.length-1} className="text-[0.6rem] bg-transparent p-0 shadow-none text-[rgba(75,71,65,0.4)] hover:scale-100 disabled:opacity-20 leading-none">↓</button>
                   </div>
                 </div>
                 {!isCollapsed && (
-                  <div style={{ height: 200 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={accommChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.12)" />
-                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
-                        <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} tickFormatter={v => v >= 1000 ? `R${(v/1000).toFixed(0)}k` : `R${v}`} />
-                        <Tooltip contentStyle={{ background: 'rgba(255,252,247,0.97)', border: '1px solid rgba(122,112,94,0.2)', borderRadius: 12, fontSize: 12 }} formatter={v => formatCurrency(v)} />
-                        <Legend wrapperStyle={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
-                        <Line type="monotone" dataKey="revenue" stroke="#6b7f5e" strokeWidth={2} dot={false} name="Revenue" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {PRODUCE_KEYS.map(cat => {
+                        const on = visibleProduce[cat];
+                        return (
+                          <button key={cat} onClick={() => setVisibleProduce(v => ({ ...v, [cat]: !v[cat] }))}
+                            className={`rounded-full px-3 py-1 text-[0.62rem] uppercase tracking-[0.1em] transition-all shadow-none hover:scale-100 ${on ? 'text-white' : 'text-[rgba(75,71,65,0.5)] bg-transparent border border-[rgba(122,112,94,0.2)]'}`}
+                            style={on ? { background: PRODUCE_COLORS[cat] } : {}}>
+                            {PRODUCE_LABELS[cat]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{ height: 200 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={produceChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(122,112,94,0.12)" />
+                          <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} />
+                          <YAxis tick={{ fontSize: 10, fill: 'rgba(75,71,65,0.5)' }} tickFormatter={v => v >= 1000 ? `R${(v/1000).toFixed(0)}k` : `R${v}`} />
+                          <Tooltip contentStyle={{ background: 'rgba(255,252,247,0.97)', border: '1px solid rgba(122,112,94,0.2)', borderRadius: 12, fontSize: 12 }} formatter={v => formatCurrency(v)} />
+                          <Legend wrapperStyle={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                          {PRODUCE_KEYS.filter(cat => visibleProduce[cat]).map(cat => (
+                            <Line key={cat} type="monotone" dataKey={cat} stroke={PRODUCE_COLORS[cat]} strokeWidth={2} dot={false} name={PRODUCE_LABELS[cat]} />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
                 )}
               </div>
             );

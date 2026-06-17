@@ -168,14 +168,16 @@ function StaffLogRow({ staff, log, year, month, isAdmin }) {
   const qc = useQueryClient();
   const [days, setDays] = useState(log?.days_worked ?? '');
   const [bonus, setBonus] = useState(log?.bonus ?? '');
+  const [advance, setAdvance] = useState(log?.advance ?? '');
   const [saving, setSaving] = useState(false);
 
-  const salary = (Number(days) || 0) * staff.daily_rate + (Number(bonus) || 0);
+  const advanceNum = Number(advance) || 0;
+  const salary = (Number(days) || 0) * staff.daily_rate + (Number(bonus) || 0) - advanceNum;
 
   async function save() {
     setSaving(true);
     try {
-      await upsertStaffLog({ staff_id: staff.id, year, month, days_worked: Number(days) || 0, bonus: Number(bonus) || 0, created_by: session?.user?.id });
+      await upsertStaffLog({ staff_id: staff.id, year, month, days_worked: Number(days) || 0, bonus: Number(bonus) || 0, advance: advanceNum, created_by: session?.user?.id });
       qc.invalidateQueries({ queryKey: ['vg', 'staffLogs', year, month] });
     } finally { setSaving(false); }
   }
@@ -197,7 +199,17 @@ function StaffLogRow({ staff, log, year, month, isAdmin }) {
           <input type="number" min="0" value={bonus} onChange={e => setBonus(e.target.value)}
             className="w-20 bg-transparent border border-[rgba(122,112,94,0.25)] rounded-lg px-2 py-1.5 text-[0.8rem] text-center outline-none focus:border-[rgba(107,127,94,0.5)]" />
         </div>
-        {isAdmin && <p className="text-[0.82rem] font-medium text-[#6b7f5e] min-w-[64px] text-right">{formatCurrency(salary)}</p>}
+        <div>
+          <label className="block text-[0.55rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.45)] mb-0.5 text-center">Advance</label>
+          <input type="number" min="0" value={advance} onChange={e => setAdvance(e.target.value)}
+            className="w-20 bg-transparent border border-[rgba(122,112,94,0.25)] rounded-lg px-2 py-1.5 text-[0.8rem] text-center outline-none focus:border-[rgba(107,127,94,0.5)]" />
+        </div>
+        {isAdmin && (
+          <div className="min-w-[64px] text-right">
+            <p className="text-[0.82rem] font-medium text-[#6b7f5e]">{formatCurrency(salary)}</p>
+            {advanceNum > 0 && <p className="text-[0.62rem] text-[rgba(194,100,80,0.85)]">−{formatCurrency(advanceNum)}</p>}
+          </div>
+        )}
         <button onClick={save} disabled={saving} className="rounded-full px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">{saving ? '…' : 'Save'}</button>
       </div>
     </div>
@@ -260,6 +272,8 @@ export default function VgAccommodation() {
   const [bookSaving, setBookSaving] = useState(false);
   const [costSaving, setCostSaving] = useState(false);
   const [costSaved, setCostSaved] = useState(false);
+  const [showCostsList, setShowCostsList] = useState(false);
+  const [showStaffList, setShowStaffList] = useState(false);
 
   const { data: units } = useQuery({ queryKey: ['vg', 'units'], queryFn: () => fetchUnits().then(r => r.data || []) });
   const { data: bookings } = useQuery({ queryKey: ['vg', 'bookings', year, month], queryFn: () => fetchBookings({ year, month }).then(r => r.data || []) });
@@ -269,7 +283,7 @@ export default function VgAccommodation() {
 
   const totalRevenue = (bookings || []).reduce((t, b) => t + (b.total || 0), 0);
   const totalMaintenance = (unitCosts || []).reduce((t, c) => t + c.amount, 0);
-  const totalStaffCost = (staffLogs || []).reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0)), 0);
+  const totalStaffCost = (staffLogs || []).reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0)), 0);
   const logByStaffId = Object.fromEntries((staffLogs || []).map(l => [l.staff_id, l]));
 
   async function logBooking(e) {
@@ -337,15 +351,62 @@ export default function VgAccommodation() {
                 <p className="text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.5)] mb-1">Revenue</p>
                 <p className="text-2xl font-light text-[#6b7f5e]">{formatCurrency(totalRevenue)}</p>
               </div>
-              <div className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
-                <p className="text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.5)] mb-1">Maintenance</p>
-                <p className="text-2xl font-light text-[#c2a66d]">{formatCurrency(totalMaintenance)}</p>
-              </div>
-              <div className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5">
-                <p className="text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.5)] mb-1">Staff Cost</p>
-                <p className="text-2xl font-light text-[#c2a66d]">{formatCurrency(totalStaffCost)}</p>
-              </div>
+              <button onClick={() => setShowCostsList(v => !v)} className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5 text-left w-full hover:bg-[rgba(255,252,247,1)] transition-colors shadow-none hover:scale-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.5)] mb-1">Maintenance</p>
+                    <p className="text-2xl font-light text-[#c2a66d]">{formatCurrency(totalMaintenance)}</p>
+                  </div>
+                  <span className="text-[0.7rem] text-[rgba(75,71,65,0.4)]">{showCostsList ? '▲ Hide' : '▼ View'}</span>
+                </div>
+              </button>
+              <button onClick={() => setShowStaffList(v => !v)} className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-5 text-left w-full hover:bg-[rgba(255,252,247,1)] transition-colors shadow-none hover:scale-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.5)] mb-1">Staff Cost</p>
+                    <p className="text-2xl font-light text-[#c2a66d]">{formatCurrency(totalStaffCost)}</p>
+                  </div>
+                  <span className="text-[0.7rem] text-[rgba(75,71,65,0.4)]">{showStaffList ? '▲ Hide' : '▼ View'}</span>
+                </div>
+              </button>
             </div>
+            {showCostsList && (unitCosts || []).length > 0 && (
+              <div className="rounded-2xl border border-[rgba(122,112,94,0.15)] bg-[rgba(255,252,247,0.95)] p-5 mt-4 animate-in slide-in-from-top-2">
+                <p className="text-[0.6rem] uppercase tracking-[0.12em] text-[rgba(75,71,65,0.4)] mb-3">Maintenance Costs — {MS[month-1]} {year}</p>
+                {(unitCosts || []).map(c => (
+                  <div key={c.id} className="flex items-center justify-between text-[0.8rem] py-2 border-b border-[rgba(122,112,94,0.06)] last:border-0 gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#2b2b2b]">{c.description || c.category}</p>
+                      <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{c.vg_units?.name || 'General'} · {formatDate(c.date)}</p>
+                    </div>
+                    <p className="text-[#c2a66d] shrink-0">{formatCurrency(c.amount)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {showStaffList && (staffLogs || []).length > 0 && (
+              <div className="rounded-2xl border border-[rgba(122,112,94,0.15)] bg-[rgba(255,252,247,0.95)] p-5 mt-4 animate-in slide-in-from-top-2">
+                <p className="text-[0.6rem] uppercase tracking-[0.12em] text-[rgba(75,71,65,0.4)] mb-3">Staff Cost — {MS[month-1]} {year}</p>
+                {(staffLogs || []).map(l => {
+                  const baseSalary = (l.days_worked || 0) * (l.vg_staff?.daily_rate || 0) + (l.bonus || 0);
+                  const advance = l.advance || 0;
+                  const net = baseSalary - advance;
+                  return (
+                    <div key={l.id} className="flex items-center justify-between text-[0.8rem] py-2 border-b border-[rgba(122,112,94,0.06)] last:border-0 gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[#2b2b2b]">{l.vg_staff?.name || 'Unknown'}</p>
+                        <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">
+                          {l.days_worked || 0} days · R {l.vg_staff?.daily_rate || 0}/day
+                          {l.bonus ? ` · +${formatCurrency(l.bonus)} bonus` : ''}
+                          {advance ? ` · −${formatCurrency(advance)} advance` : ''}
+                        </p>
+                      </div>
+                      <p className="text-[#c2a66d] shrink-0">{formatCurrency(net)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
         )}
 
