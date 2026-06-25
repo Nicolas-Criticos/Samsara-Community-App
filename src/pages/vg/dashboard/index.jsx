@@ -213,18 +213,18 @@ export default function VgDashboard() {
 
   const { data: sales } = useQuery({
     queryKey: ['vg', 'sales', year, month],
-    queryFn: () => supabase.from('vg_sales').select('*, vg_products(name,category)').gte('date', `${year}-${String(month).padStart(2,'0')}-01`).lte('date', `${year}-${String(month).padStart(2,'0')}-31`).then(r => r.data || []),
+    queryFn: () => { const nm = month + 1 > 12 ? 1 : month + 1; const ny = month + 1 > 12 ? year + 1 : year; return supabase.from('vg_sales').select('*, vg_products(name,category)').gte('date', `${year}-${String(month).padStart(2,'0')}-01`).lt('date', `${ny}-${String(nm).padStart(2,'0')}-01`).then(r => r.data || []); },
   });
 
   const { data: expenses } = useQuery({
     queryKey: ['vg', 'expenses', year, month],
-    queryFn: () => supabase.from('vg_expenses').select('*').gte('date', `${year}-${String(month).padStart(2,'0')}-01`).lte('date', `${year}-${String(month).padStart(2,'0')}-31`).then(r => r.data || []),
+    queryFn: () => { const nm = month + 1 > 12 ? 1 : month + 1; const ny = month + 1 > 12 ? year + 1 : year; return supabase.from('vg_expenses').select('*').gte('date', `${year}-${String(month).padStart(2,'0')}-01`).lt('date', `${ny}-${String(nm).padStart(2,'0')}-01`).then(r => r.data || []); },
     enabled: isAdmin,
   });
 
   const { data: bookings } = useQuery({
     queryKey: ['vg', 'bookings', year, month],
-    queryFn: () => supabase.from('vg_bookings').select('*, vg_units(name)').gte('check_in', `${year}-${String(month).padStart(2,'0')}-01`).lte('check_in', `${year}-${String(month).padStart(2,'0')}-31`).then(r => r.data || []),
+    queryFn: () => { const nm = month + 1 > 12 ? 1 : month + 1; const ny = month + 1 > 12 ? year + 1 : year; return supabase.from('vg_bookings').select('*, vg_units(name)').gte('check_in', `${year}-${String(month).padStart(2,'0')}-01`).lt('check_in', `${ny}-${String(nm).padStart(2,'0')}-01`).then(r => r.data || []); },
   });
 
   const { data: staffLogs } = useQuery({
