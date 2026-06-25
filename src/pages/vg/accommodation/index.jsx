@@ -6,6 +6,20 @@ import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { useAuthSession } from '../../../hooks/useAuthSession.js';
 import { MONTH_SHORT as MS } from '../../../lib/vg/constants.js';
 
+// ─── Booking Sources ──────────────────────────────────────────────────────
+
+const BOOKING_SOURCES = [
+  { value: 'website', label: 'Website', commission: 0 },
+  { value: 'bookings_com', label: 'Bookings.com', commission: 0 },
+  { value: 'perfect_hideaways', label: 'Perfect Hideaways', commission: 0.15 },
+  { value: 'abang_africa', label: 'Abang Africa', commission: 0.10 },
+  { value: 'mask_expeditions', label: 'Mask Expeditions', commission: 0.10 },
+];
+
+function getCommission(source) {
+  return BOOKING_SOURCES.find(s => s.value === source)?.commission ?? 0;
+}
+
 // ─── Booking Edit Modal ────────────────────────────────────────────────────
 
 function BookingEditModal({ booking, units, onClose, onSaved }) {
@@ -16,6 +30,8 @@ function BookingEditModal({ booking, units, onClose, onSaved }) {
     check_in: booking.check_in || '',
     check_out: booking.check_out || '',
     rate_per_night: booking.rate_per_night || '',
+    total_amount: booking.total || '',
+    booking_source: booking.booking_source || '',
     notes: booking.notes || '',
   });
   const [saving, setSaving] = useState(false);
@@ -23,7 +39,19 @@ function BookingEditModal({ booking, units, onClose, onSaved }) {
   const nights = form.check_in && form.check_out
     ? Math.max(0, Math.round((new Date(form.check_out) - new Date(form.check_in)) / 86400000))
     : 0;
-  const total = nights * Number(form.rate_per_night || 0);
+
+  // Derive rate from total when total is set, or total from rate
+  const total = Number(form.total_amount) || (nights * Number(form.rate_per_night || 0));
+  const rateDisplay = nights > 0 && total > 0 ? (total / nights) : Number(form.rate_per_night || 0);
+  const commission = getCommission(form.booking_source);
+  const amountReceived = commission > 0 ? total * (1 - commission) : total;
+
+  function handleTotalChange(val) {
+    setForm(f => ({ ...f, total_amount: val, rate_per_night: nights > 0 && val ? (Number(val) / nights).toFixed(2) : f.rate_per_night }));
+  }
+  function handleRateChange(val) {
+    setForm(f => ({ ...f, rate_per_night: val, total_amount: nights > 0 && val ? (Number(val) * nights).toFixed(2) : f.total_amount }));
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -34,9 +62,9 @@ function BookingEditModal({ booking, units, onClose, onSaved }) {
         unit_id: form.unit_id || null,
         check_in: form.check_in,
         check_out: form.check_out,
-        rate_per_night: Number(form.rate_per_night),
-        nights,
-        total,
+        rate_per_night: rateDisplay,
+        booking_source: form.booking_source || null,
+        amount_received: commission > 0 ? amountReceived : null,
         notes: form.notes,
       });
       qc.invalidateQueries({ queryKey: ['vg', 'bookings'] });
@@ -81,13 +109,43 @@ function BookingEditModal({ booking, units, onClose, onSaved }) {
               className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
           </div>
           <div>
-            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Rate (R/night)</label>
-            <input type="number" min="0" step="0.01" value={form.rate_per_night} onChange={e => setForm(f => ({ ...f, rate_per_night: e.target.value }))} required
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Total Amount (R)</label>
+            <input type="number" min="0" step="0.01" value={form.total_amount}
+              onChange={e => handleTotalChange(e.target.value)}
               className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
           </div>
-          <div className="flex items-end pb-2">
-            <p className="text-[0.75rem] text-[rgba(75,71,65,0.5)]">{nights} nights · <span className="text-[#6b7f5e] font-medium">{formatCurrency(total)}</span></p>
+          <div>
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Rate (R/night)</label>
+            <input type="number" min="0" step="0.01" value={form.rate_per_night}
+              onChange={e => handleRateChange(e.target.value)}
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
           </div>
+          <div className="col-span-2">
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Booking Source</label>
+            <select value={form.booking_source} onChange={e => setForm(f => ({ ...f, booking_source: e.target.value }))}
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none">
+              <option value="">— select source —</option>
+              {BOOKING_SOURCES.map(s => (
+                <option key={s.value} value={s.value}>
+                  {s.label}{s.commission > 0 ? ` (−${s.commission * 100}%)` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          {nights > 0 && (
+            <div className="col-span-2 rounded-xl bg-[rgba(107,127,94,0.08)] px-4 py-3 space-y-1">
+              <div className="flex justify-between text-[0.7rem]">
+                <span className="text-[rgba(75,71,65,0.5)] uppercase tracking-[0.1em]">{nights} nights × {formatCurrency(rateDisplay)}/night</span>
+                <span className="font-medium text-[#2b2b2b]">{formatCurrency(total)}</span>
+              </div>
+              {commission > 0 && (
+                <div className="flex justify-between text-[0.7rem]">
+                  <span className="text-[rgba(75,71,65,0.5)] uppercase tracking-[0.1em]">After {commission * 100}% commission</span>
+                  <span className="font-medium text-[#6b7f5e]">{formatCurrency(amountReceived)}</span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="col-span-2">
             <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Notes</label>
             <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
@@ -363,7 +421,7 @@ export default function VgAccommodation() {
   const [unitModal, setUnitModal] = useState(null);
   const [staffModal, setStaffModal] = useState(null);
   const [editBookingModal, setEditBookingModal] = useState(null);
-  const [bookingForm, setBookingForm] = useState({ unit_id: '', guest_name: '', check_in: '', check_out: '', rate_per_night: '', notes: '' });
+  const [bookingForm, setBookingForm] = useState({ unit_id: '', guest_name: '', check_in: '', check_out: '', rate_per_night: '', total_amount: '', booking_source: '', notes: '' });
   const [costForm, setCostForm] = useState({ unit_id: '', date: new Date().toISOString().slice(0,10), description: '', amount: '', category: 'maintenance' });
   const [bookSaving, setBookSaving] = useState(false);
   const [costSaving, setCostSaving] = useState(false);
@@ -382,13 +440,39 @@ export default function VgAccommodation() {
   const totalStaffCost = (staffLogs || []).reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0)), 0);
   const logByStaffId = Object.fromEntries((staffLogs || []).map(l => [l.staff_id, l]));
 
+  const bookNights = bookingForm.check_in && bookingForm.check_out
+    ? Math.max(0, Math.round((new Date(bookingForm.check_out) - new Date(bookingForm.check_in)) / 86400000))
+    : 0;
+  const bookTotal = Number(bookingForm.total_amount) || (bookNights * Number(bookingForm.rate_per_night || 0));
+  const bookRate = bookNights > 0 && bookTotal > 0 ? bookTotal / bookNights : Number(bookingForm.rate_per_night || 0);
+  const bookCommission = getCommission(bookingForm.booking_source);
+  const bookAmountReceived = bookCommission > 0 ? bookTotal * (1 - bookCommission) : bookTotal;
+
+  function handleBookTotalChange(val) {
+    setBookingForm(f => ({ ...f, total_amount: val, rate_per_night: bookNights > 0 && val ? (Number(val) / bookNights).toFixed(2) : f.rate_per_night }));
+  }
+  function handleBookRateChange(val) {
+    setBookingForm(f => ({ ...f, rate_per_night: val, total_amount: bookNights > 0 && val ? (Number(val) * bookNights).toFixed(2) : f.total_amount }));
+  }
+
   async function logBooking(e) {
     e.preventDefault();
     setBookSaving(true);
     try {
-      await insertBooking({ ...bookingForm, rate_per_night: Number(bookingForm.rate_per_night), created_by: session?.user?.id });
+      // nights + total are generated columns — do not send them
+      await insertBooking({
+        unit_id: bookingForm.unit_id || null,
+        guest_name: bookingForm.guest_name,
+        check_in: bookingForm.check_in,
+        check_out: bookingForm.check_out,
+        rate_per_night: bookRate,
+        booking_source: bookingForm.booking_source || null,
+        amount_received: bookCommission > 0 ? bookAmountReceived : null,
+        notes: bookingForm.notes,
+        created_by: session?.user?.id,
+      });
       qc.invalidateQueries({ queryKey: ['vg', 'bookings'] });
-      setBookingForm(f => ({ ...f, guest_name: '', check_in: '', check_out: '', notes: '' }));
+      setBookingForm(f => ({ ...f, guest_name: '', check_in: '', check_out: '', total_amount: '', rate_per_night: f.unit_id ? f.rate_per_night : '', booking_source: '', notes: '' }));
     } finally { setBookSaving(false); }
   }
 
@@ -558,19 +642,46 @@ export default function VgAccommodation() {
                   className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
               </div>
               <div>
-                <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Rate / Night (R)</label>
-                <input type="number" min="0" step="0.01" value={bookingForm.rate_per_night} onChange={e => setBookingForm(f => ({ ...f, rate_per_night: e.target.value }))}
+                <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Total Amount (R)</label>
+                <input type="number" min="0" step="0.01" value={bookingForm.total_amount}
+                  onChange={e => handleBookTotalChange(e.target.value)}
                   className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
               </div>
+              <div>
+                <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Rate / Night (R)</label>
+                <input type="number" min="0" step="0.01" value={bookingForm.rate_per_night}
+                  onChange={e => handleBookRateChange(e.target.value)}
+                  className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+              </div>
+              <div className="col-span-2 sm:col-span-3">
+                <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Booking Source</label>
+                <select value={bookingForm.booking_source} onChange={e => setBookingForm(f => ({ ...f, booking_source: e.target.value }))}
+                  className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none">
+                  <option value="">— select source —</option>
+                  {BOOKING_SOURCES.map(s => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}{s.commission > 0 ? ` (−${s.commission * 100}%)` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            {isAdmin && bookingForm.check_in && bookingForm.check_out && bookingForm.rate_per_night && (
-              <div className="rounded-xl bg-[rgba(107,127,94,0.08)] px-4 py-3 mb-4 flex justify-between items-center">
-                <span className="text-[0.7rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.5)]">
-                  {Math.max(0, Math.round((new Date(bookingForm.check_out) - new Date(bookingForm.check_in)) / 86400000))} nights
-                </span>
-                <span className="text-xl font-light text-[#6b7f5e]">
-                  {formatCurrency(Math.max(0, Math.round((new Date(bookingForm.check_out) - new Date(bookingForm.check_in)) / 86400000)) * Number(bookingForm.rate_per_night))}
-                </span>
+            {bookNights > 0 && bookTotal > 0 && (
+              <div className="rounded-xl bg-[rgba(107,127,94,0.08)] px-4 py-3 mb-4 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-[0.7rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.5)]">
+                    {bookNights} nights × {formatCurrency(bookRate)}/night
+                  </span>
+                  <span className="text-xl font-light text-[#2b2b2b]">{formatCurrency(bookTotal)}</span>
+                </div>
+                {bookCommission > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[0.7rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.5)]">
+                      After {bookCommission * 100}% commission
+                    </span>
+                    <span className="text-xl font-light text-[#6b7f5e]">{formatCurrency(bookAmountReceived)}</span>
+                  </div>
+                )}
               </div>
             )}
             <button type="submit" disabled={bookSaving} className="rounded-full px-6 py-2.5 text-[0.68rem] uppercase tracking-[0.12em] bg-[rgba(107,127,94,0.85)] text-white">
@@ -582,25 +693,38 @@ export default function VgAccommodation() {
           {(bookings || []).length > 0 && (
             <div className="mt-5 pt-4 border-t border-[rgba(122,112,94,0.1)]">
               <p className="text-[0.6rem] uppercase tracking-[0.12em] text-[rgba(75,71,65,0.4)] mb-3">Bookings This Month</p>
-              {(bookings || []).map(b => (
-                <div key={b.id} className="flex items-center justify-between py-2.5 border-b border-[rgba(122,112,94,0.08)] last:border-0 gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[0.82rem] font-medium text-[#2b2b2b]">{b.guest_name}</p>
-                    <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{b.vg_units?.name} · {formatDate(b.check_in)} → {formatDate(b.check_out)} · {b.nights}n</p>
+              {(bookings || []).map(b => {
+                const src = BOOKING_SOURCES.find(s => s.value === b.booking_source);
+                return (
+                  <div key={b.id} className="flex items-center justify-between py-2.5 border-b border-[rgba(122,112,94,0.08)] last:border-0 gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[0.82rem] font-medium text-[#2b2b2b]">{b.guest_name}</p>
+                      <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">
+                        {b.vg_units?.name} · {formatDate(b.check_in)} → {formatDate(b.check_out)} · {b.nights}n
+                        {src && <span className="ml-1">· {src.label}</span>}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {isAdmin && (
+                        <div className="text-right">
+                          <p className="text-[0.82rem] font-light text-[#2b2b2b]">{formatCurrency(b.total)}</p>
+                          {b.amount_received != null && b.amount_received !== b.total && (
+                            <p className="text-[0.68rem] text-[#6b7f5e]">{formatCurrency(b.amount_received)} received</p>
+                          )}
+                        </div>
+                      )}
+                      {isAdmin && <button
+                        onClick={() => setEditBookingModal(b)}
+                        className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.3)] text-[rgba(75,71,65,0.6)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.1)]"
+                      >Edit</button>}
+                      <button
+                        onClick={() => handleDeleteBooking(b)}
+                        className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]"
+                      >Delete</button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    {isAdmin && <p className="text-[0.82rem] font-light text-[#6b7f5e]">{formatCurrency(b.total)}</p>}
-                    {isAdmin && <button
-                      onClick={() => setEditBookingModal(b)}
-                      className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.3)] text-[rgba(75,71,65,0.6)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.1)]"
-                    >Edit</button>}
-                    <button
-                      onClick={() => handleDeleteBooking(b)}
-                      className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]"
-                    >Delete</button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

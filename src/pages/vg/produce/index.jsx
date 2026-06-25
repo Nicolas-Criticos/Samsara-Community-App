@@ -216,6 +216,13 @@ export default function VgProduce() {
     qc.invalidateQueries({ queryKey: ['vg', 'products', activeCategory] });
   }
 
+  async function handleDeleteSale(s) {
+    const label = s.vg_products?.name || 'this sale';
+    if (!confirm(`Delete sale of ${label} on ${formatDate(s.date)}? This cannot be undone.`)) return;
+    await deleteSale(s.id);
+    qc.invalidateQueries({ queryKey: ['vg', 'sales'] });
+  }
+
   function costsForProduct(productId) {
     return (allCosts || []).filter(c => c.product_id === productId);
   }
@@ -539,7 +546,10 @@ export default function VgProduce() {
                         <p className="text-[0.82rem] text-[#2b2b2b]">{s.vg_products?.name} · {s.kg_weight ? `${s.kg_weight} kg` : `${s.units} units`}</p>
                         <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{formatDate(s.date)} · {capitalize(s.channel || '')}</p>
                       </div>
-                      {isAdmin && <p className="text-[0.82rem] font-light text-[#6b7f5e]">{formatCurrency(s.sell_price_actual * (s.kg_weight ? 1 : s.units))}</p>}
+                      <div className="flex items-center gap-3">
+                        {isAdmin && <p className="text-[0.82rem] font-light text-[#6b7f5e]">{formatCurrency(s.sell_price_actual * (s.kg_weight ? 1 : s.units))}</p>}
+                        {isAdmin && <button onClick={() => handleDeleteSale(s)} className="bg-transparent text-[rgba(194,100,80,0.6)] shadow-none rounded-full px-2 py-0 text-base hover:scale-100 hover:text-[rgba(194,100,80,0.9)]">×</button>}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -610,7 +620,10 @@ export default function VgProduce() {
                       <p className="text-[0.82rem] text-[#2b2b2b]">{s.vg_products?.name} · {s.kg_weight ? `${s.kg_weight} kg` : `${s.units} units`}</p>
                       <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{formatDate(s.date)} · {capitalize(s.channel || '')}</p>
                     </div>
-                    {isAdmin && <p className="text-[0.82rem] font-light text-[#6b7f5e]">{formatCurrency(s.sell_price_actual * (s.kg_weight ? 1 : s.units))}</p>}
+                    <div className="flex items-center gap-3">
+                      {isAdmin && <p className="text-[0.82rem] font-light text-[#6b7f5e]">{formatCurrency(s.sell_price_actual * (s.kg_weight ? 1 : s.units))}</p>}
+                      {isAdmin && <button onClick={() => handleDeleteSale(s)} className="bg-transparent text-[rgba(194,100,80,0.6)] shadow-none rounded-full px-2 py-0 text-base hover:scale-100 hover:text-[rgba(194,100,80,0.9)]">×</button>}
+                    </div>
                   </div>
                 ))}
               </div>
