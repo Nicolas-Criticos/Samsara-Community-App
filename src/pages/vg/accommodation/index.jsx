@@ -446,6 +446,7 @@ export default function VgAccommodation() {
   const [costSaved, setCostSaved] = useState(false);
   const [showCostsList, setShowCostsList] = useState(false);
   const [showStaffList, setShowStaffList] = useState(false);
+  const [editUnitCost, setEditUnitCost] = useState(null);
 
   const { data: units } = useQuery({ queryKey: ['vg', 'units'], queryFn: () => fetchUnits().then(r => r.data || []) });
   const { data: bookings } = useQuery({ queryKey: ['vg', 'bookings', year, month], queryFn: () => fetchBookings({ year, month }).then(r => r.data || []) });
