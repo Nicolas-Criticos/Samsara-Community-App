@@ -776,8 +776,13 @@ export default function VgAccommodation() {
                 {(unitCosts||[]).map(c => (
                   <div key={c.id} className="flex items-center justify-between text-[0.8rem] py-1.5 border-b border-[rgba(122,112,94,0.06)] gap-3">
                     <div className="flex-1 min-w-0"><p className="text-[#2b2b2b]">{c.description}</p><p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{c.vg_units?.name || 'General'} · {formatDate(c.date)}</p></div>
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <p className="text-[#c2a66d]">{formatCurrency(c.amount)}</p>
+                      <button
+                        type="button"
+                        onClick={() => setEditUnitCost(c)}
+                        className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.3)] text-[rgba(75,71,65,0.6)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.1)]"
+                      >Edit</button>
                       <button
                         type="button"
                         onClick={() => handleDeleteCost(c.id)}
@@ -820,6 +825,7 @@ export default function VgAccommodation() {
       {unitModal && <UnitModal unit={unitModal.unit} onClose={() => setUnitModal(null)} onSaved={() => setUnitModal(null)} />}
       {staffModal && <StaffModal staff={staffModal.staff} onClose={() => setStaffModal(null)} onSaved={() => setStaffModal(null)} />}
       {editBookingModal && <BookingEditModal booking={editBookingModal} units={units} onClose={() => setEditBookingModal(null)} onSaved={() => setEditBookingModal(null)} />}
+      {editUnitCost && <UnitCostEditModal cost={editUnitCost} units={units} onClose={() => setEditUnitCost(null)} onSaved={() => setEditUnitCost(null)} />}
     </div>
   );
 }

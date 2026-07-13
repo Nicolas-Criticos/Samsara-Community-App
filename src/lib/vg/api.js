@@ -151,6 +151,9 @@ export const fetchExpenses = ({ category, year, month } = {}) => {
 export const insertExpense = (row) =>
   supabase.from('vg_expenses').insert(row).select().single();
 
+export const updateExpense = (id, patch) =>
+  supabase.from('vg_expenses').update(patch).eq('id', id).select().single();
+
 export const deleteExpense = (id) =>
   supabase.from('vg_expenses').delete().eq('id', id);
 
@@ -259,6 +262,9 @@ export const fetchUnitCosts = ({ unitId, year, month } = {}) => {
 
 export const insertUnitCost = (row) =>
   supabase.from('vg_unit_costs').insert(row).select().single();
+
+export const updateUnitCost = (id, patch) =>
+  supabase.from('vg_unit_costs').update(patch).eq('id', id).select().single();
 
 export const deleteUnitCost = (id) =>
   supabase.from('vg_unit_costs').delete().eq('id', id);

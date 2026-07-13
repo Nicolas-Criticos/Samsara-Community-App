@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import {
   fetchProducts, fetchAllProductCosts, insertProduct, updateProduct, deleteProduct, replaceProductCosts,
-  fetchSales, fetchExpenses, insertSale, insertExpense, deleteSale, deleteExpense,
+  fetchSales, fetchExpenses, insertSale, insertExpense, updateExpense, deleteSale, deleteExpense,
   insertSaleOrder, insertSalesBulk
 } from '../../../lib/vg/api.js';
 import { PRODUCE_CATEGORIES, MONTH_SHORT } from '../../../lib/vg/constants.js';
@@ -26,6 +26,68 @@ function monthsEndingAt(year, month, count = 12) {
 }
 import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { useAuthSession } from '../../../hooks/useAuthSession.js';
+
+// ─── Expense Edit Modal ───────────────────────────────────────────────────────
+
+function ExpenseEditModal({ expense, onClose, onSaved }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    date: expense.date || '',
+    description: expense.description || '',
+    amount: expense.amount || '',
+    notes: expense.notes || '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await updateExpense(expense.id, {
+        date: form.date,
+        description: form.description,
+        amount: Number(form.amount),
+        notes: form.notes || null,
+      });
+      qc.invalidateQueries({ queryKey: ['vg', 'expenses'] });
+      onSaved();
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(44,42,37,0.4)] backdrop-blur-sm p-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <form onSubmit={handleSave} className="bg-[rgba(255,252,247,0.98)] rounded-2xl border border-[rgba(122,112,94,0.2)] p-8 w-full max-w-sm shadow-xl">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-light">Edit Expense</h2>
+          <button type="button" onClick={onClose} className="bg-transparent p-0 text-2xl text-[rgba(75,71,65,0.4)] shadow-none rounded-none hover:scale-100">×</button>
+        </div>
+        <div className="space-y-4 mb-6">
+          <div>
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Date</label>
+            <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+          </div>
+          <div>
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Description</label>
+            <input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} required
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+          </div>
+          <div>
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Amount (R)</label>
+            <input type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+          </div>
+          <div>
+            <label className="block text-[0.62rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.55)] mb-1">Notes</label>
+            <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              className="w-full bg-transparent border-0 border-b border-[rgba(122,112,94,0.3)] px-0 py-2 text-[0.85rem] outline-none" />
+          </div>
+        </div>
+        <button type="submit" disabled={saving} className="w-full rounded-full py-3 text-[0.7rem] uppercase tracking-[0.14em] bg-[rgba(107,127,94,0.85)] text-white">{saving ? 'Saving…' : 'Save Changes'}</button>
+      </form>
+    </div>
+  );
+}
 
 // ─── Product Modal ─────────────────────────────────────────────────────────
 
@@ -147,6 +209,7 @@ export default function VgProduce() {
   const [expenseForm, setExpenseForm] = useState({ date: new Date().toISOString().slice(0,10), description: '', amount: '', notes: '' });
   const [saleSaving, setSaleSaving] = useState(false);
   const [expSaving, setExpSaving] = useState(false);
+  const [editExpense, setEditExpense] = useState(null);
 
   // Meat multi-item order form
   const [orderForm, setOrderForm] = useState({
@@ -221,6 +284,12 @@ export default function VgProduce() {
     if (!confirm(`Delete sale of ${label} on ${formatDate(s.date)}? This cannot be undone.`)) return;
     await deleteSale(s.id);
     qc.invalidateQueries({ queryKey: ['vg', 'sales'] });
+  }
+
+  async function handleDeleteExpense(e) {
+    if (!confirm(`Delete expense "${e.description}"? This cannot be undone.`)) return;
+    await deleteExpense(e.id);
+    qc.invalidateQueries({ queryKey: ['vg', 'expenses'] });
   }
 
   function costsForProduct(productId) {
@@ -659,10 +728,23 @@ export default function VgProduce() {
           </form>
           {isAdmin && (expenses || []).length > 0 && (
             <div className="mt-5 pt-4 border-t border-[rgba(122,112,94,0.1)]">
-              {(expenses || []).slice(0, 5).map(e => (
-                <div key={e.id} className="flex justify-between py-2 border-b border-[rgba(122,112,94,0.08)] text-[0.82rem]">
-                  <div><p className="text-[#2b2b2b]">{e.description}</p><p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{formatDate(e.date)}</p></div>
-                  <p className="text-[#c2a66d]">{formatCurrency(e.amount)}</p>
+              {(expenses || []).map(e => (
+                <div key={e.id} className="flex items-center justify-between py-2 border-b border-[rgba(122,112,94,0.08)] text-[0.82rem] gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[#2b2b2b]">{e.description}</p>
+                    <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{formatDate(e.date)}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <p className="text-[#c2a66d]">{formatCurrency(e.amount)}</p>
+                    <button
+                      onClick={() => setEditExpense(e)}
+                      className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.3)] text-[rgba(75,71,65,0.6)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.1)]"
+                    >Edit</button>
+                    <button
+                      onClick={() => handleDeleteExpense(e)}
+                      className="rounded-full px-3 py-1 text-[0.58rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]"
+                    >Delete</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -735,6 +817,13 @@ export default function VgProduce() {
           category={activeCategory}
           onClose={() => setProductModal(null)}
           onSaved={() => setProductModal(null)}
+        />
+      )}
+      {editExpense && (
+        <ExpenseEditModal
+          expense={editExpense}
+          onClose={() => setEditExpense(null)}
+          onSaved={() => setEditExpense(null)}
         />
       )}
     </div>
