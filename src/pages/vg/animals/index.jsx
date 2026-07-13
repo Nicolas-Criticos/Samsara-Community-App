@@ -19,7 +19,8 @@ const SHEEP_COLS = [
   { key: 'total', label: 'Total', computed: true, color: '#6b7f5e' },
   { key: 'ewe', label: 'Ewes', color: '#c2a66d' },
   { key: 'ram', label: 'Rams', color: '#8b6f47' },
-  { key: 'lamb', label: 'Lambs', color: '#8fb88f' },
+  { key: 'ewe_lamb', label: 'Ewe Lambs', color: '#8fb88f' },
+  { key: 'ram_lamb', label: 'Ram Lambs', color: '#9eba9e' },
   { key: 'births', label: 'Births', color: '#5a7a5a' },
   { key: 'pregnant', label: 'Pregnant', color: '#b89a6b' },
   { key: 'slaughtered', label: 'Slaughter', color: '#8b4a4a' },
@@ -39,7 +40,7 @@ const CATTLE_COLS = [
 ];
 
 function emptyRow(m) {
-  return { month: m, ewe: 0, ram: 0, lamb: 0, cow: 0, bull: 0, calf: 0, births: 0, pregnant: 0, slaughtered: 0, deaths: 0, sold: 0 };
+  return { month: m, ewe: 0, ram: 0, lamb: 0, ewe_lamb: 0, ram_lamb: 0, cow: 0, bull: 0, calf: 0, births: 0, pregnant: 0, slaughtered: 0, deaths: 0, sold: 0 };
 }
 
 function aggregateYear(data) {
@@ -106,10 +107,12 @@ function EditableCell({ value, onChange, disabled }) {
 
 function YearTable({ animalType, year, rows, onSave }) {
   const cols = animalType === 'sheep' ? SHEEP_COLS : CATTLE_COLS;
-  const categories = animalType === 'sheep' ? ['ewe', 'ram', 'lamb'] : ['cow', 'bull', 'calf'];
+  const categories = animalType === 'sheep' ? ['ewe', 'ram', 'ewe_lamb', 'ram_lamb'] : ['cow', 'bull', 'calf'];
 
   function getTotal(row) {
-    return categories.reduce((s, c) => s + (row[c] || 0), 0);
+    const base = categories.reduce((s, c) => s + (row[c] || 0), 0);
+    // Include legacy 'lamb' rows (before ewe_lamb/ram_lamb split)
+    return animalType === 'sheep' ? base + (row.lamb || 0) : base;
   }
 
   return (
@@ -171,7 +174,7 @@ function RegistrySection({ animalType }) {
   const [form, setForm] = useState({ tag_id: '', name: '', category: '', birth_date: '', status: 'active', notes: '' });
   const qc = useQueryClient();
 
-  const categories = animalType === 'sheep' ? ['ewe', 'ram', 'lamb'] : ['cow', 'bull', 'calf'];
+  const categories = animalType === 'sheep' ? ['ewe', 'ram', 'ewe_lamb', 'ram_lamb'] : ['cow', 'bull', 'calf'];
 
   const { data: animals } = useQuery({
     queryKey: ['vg', 'registry', animalType],
@@ -287,7 +290,7 @@ export default function VgAnimals() {
   });
 
   const rows = useMemo(() => aggregateYear(rawData), [rawData]);
-  const categories = animalType === 'sheep' ? ['ewe', 'ram', 'lamb'] : ['cow', 'bull', 'calf'];
+  const categories = animalType === 'sheep' ? ['ewe', 'ram', 'ewe_lamb', 'ram_lamb'] : ['cow', 'bull', 'calf'];
   const cols = animalType === 'sheep' ? SHEEP_COLS : CATTLE_COLS;
 
   // Save a cell edit
@@ -350,7 +353,7 @@ export default function VgAnimals() {
     Total: categories.reduce((s, c) => s + (r[c] || 0), 0),
     Ewes: r.ewe || r.cow || 0,
     Rams: r.ram || r.bull || 0,
-    Lambs: r.lamb || r.calf || 0,
+    Lambs: (r.lamb || 0) + (r.ewe_lamb || 0) + (r.ram_lamb || 0) || r.calf || 0,
     Births: r.births || 0,
     Pregnant: r.pregnant || 0,
     Slaughter: r.slaughtered || 0,
