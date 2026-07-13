@@ -318,18 +318,33 @@ function UnitModal({ unit, onClose, onSaved }) {
 function StaffLogRow({ staff, log, year, month, isAdmin }) {
   const { data: session } = useAuthSession();
   const qc = useQueryClient();
-  const [days, setDays] = useState(log?.days_worked ?? '');
+  const [totalCash, setTotalCash] = useState(log?.total_cash_paid ?? '');
+  const [expenses, setExpenses] = useState(log?.staff_expenses ?? '');
   const [bonus, setBonus] = useState(log?.bonus ?? '');
-  const [advance, setAdvance] = useState(log?.advance ?? '');
   const [saving, setSaving] = useState(false);
 
-  const advanceNum = Number(advance) || 0;
-  const salary = (Number(days) || 0) * staff.daily_rate + (Number(bonus) || 0) - advanceNum;
+  const totalCashNum = Number(totalCash) || 0;
+  const expensesNum = Number(expenses) || 0;
+  const bonusNum = Number(bonus) || 0;
+
+  // Reverse-engineer days worked from inputs
+  // farm cost = cash + expenses; days = (cash + expenses - bonus) / daily_rate
+  const farmCost = totalCashNum + expensesNum;
+  const daysWorked = staff.daily_rate > 0
+    ? Math.round(((totalCashNum + expensesNum - bonusNum) / staff.daily_rate) * 100) / 100
+    : 0;
 
   async function save() {
     setSaving(true);
     try {
-      await upsertStaffLog({ staff_id: staff.id, year, month, days_worked: Number(days) || 0, bonus: Number(bonus) || 0, advance: advanceNum, created_by: session?.user?.id });
+      await upsertStaffLog({
+        staff_id: staff.id, year, month,
+        total_cash_paid: totalCashNum,
+        staff_expenses: expensesNum,
+        bonus: bonusNum,
+        days_worked: daysWorked,
+        created_by: session?.user?.id,
+      });
       qc.invalidateQueries({ queryKey: ['vg', 'staffLogs', year, month] });
     } finally { setSaving(false); }
   }
@@ -339,27 +354,30 @@ function StaffLogRow({ staff, log, year, month, isAdmin }) {
       <div className="flex-1 min-w-0">
         <p className="text-[0.82rem] font-medium text-[#2b2b2b] truncate">{staff.name}</p>
         <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">{staff.role} · R {staff.daily_rate}/day</p>
+        {totalCashNum > 0 && (
+          <p className="text-[0.65rem] text-[rgba(107,127,94,0.8)] mt-0.5">{daysWorked} days worked</p>
+        )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <div>
-          <label className="block text-[0.55rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.45)] mb-0.5 text-center">Days</label>
-          <input type="number" min="0" step="0.5" value={days} onChange={e => setDays(e.target.value)}
-            className="w-14 bg-transparent border border-[rgba(122,112,94,0.25)] rounded-lg px-2 py-1.5 text-[0.8rem] text-center outline-none focus:border-[rgba(107,127,94,0.5)]" />
+          <label className="block text-[0.55rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.45)] mb-0.5 text-center">Cash Paid</label>
+          <input type="number" min="0" step="0.01" value={totalCash} onChange={e => setTotalCash(e.target.value)}
+            className="w-24 bg-transparent border border-[rgba(122,112,94,0.25)] rounded-lg px-2 py-1.5 text-[0.8rem] text-center outline-none focus:border-[rgba(107,127,94,0.5)]" />
+        </div>
+        <div>
+          <label className="block text-[0.55rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.45)] mb-0.5 text-center">Expenses</label>
+          <input type="number" min="0" step="0.01" value={expenses} onChange={e => setExpenses(e.target.value)}
+            className="w-24 bg-transparent border border-[rgba(122,112,94,0.25)] rounded-lg px-2 py-1.5 text-[0.8rem] text-center outline-none focus:border-[rgba(107,127,94,0.5)]" />
         </div>
         <div>
           <label className="block text-[0.55rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.45)] mb-0.5 text-center">Bonus</label>
-          <input type="number" min="0" value={bonus} onChange={e => setBonus(e.target.value)}
-            className="w-20 bg-transparent border border-[rgba(122,112,94,0.25)] rounded-lg px-2 py-1.5 text-[0.8rem] text-center outline-none focus:border-[rgba(107,127,94,0.5)]" />
-        </div>
-        <div>
-          <label className="block text-[0.55rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.45)] mb-0.5 text-center">Advance</label>
-          <input type="number" min="0" value={advance} onChange={e => setAdvance(e.target.value)}
+          <input type="number" min="0" step="0.01" value={bonus} onChange={e => setBonus(e.target.value)}
             className="w-20 bg-transparent border border-[rgba(122,112,94,0.25)] rounded-lg px-2 py-1.5 text-[0.8rem] text-center outline-none focus:border-[rgba(107,127,94,0.5)]" />
         </div>
         {isAdmin && (
           <div className="min-w-[64px] text-right">
-            <p className="text-[0.82rem] font-medium text-[#6b7f5e]">{formatCurrency(salary)}</p>
-            {advanceNum > 0 && <p className="text-[0.62rem] text-[rgba(194,100,80,0.85)]">−{formatCurrency(advanceNum)}</p>}
+            <p className="text-[0.82rem] font-medium text-[#6b7f5e]">{formatCurrency(farmCost)}</p>
+            {expensesNum > 0 && <p className="text-[0.62rem] text-[rgba(75,71,65,0.45)]">incl. {formatCurrency(expensesNum)} exp</p>}
           </div>
         )}
         <button onClick={save} disabled={saving} className="rounded-full px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">{saving ? '…' : 'Save'}</button>
@@ -437,7 +455,14 @@ export default function VgAccommodation() {
 
   const totalRevenue = (bookings || []).reduce((t, b) => t + (b.total || 0), 0);
   const totalMaintenance = (unitCosts || []).reduce((t, c) => t + c.amount, 0);
-  const totalStaffCost = (staffLogs || []).reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0)), 0);
+  const totalStaffCost = (staffLogs || []).reduce((t, l) => {
+    // New method: farm cost = cash paid + expenses
+    // Old records (pre-migration): fall back to days × rate + bonus - advance
+    if (l.total_cash_paid != null && l.total_cash_paid > 0) {
+      return t + (l.total_cash_paid || 0) + (l.staff_expenses || 0);
+    }
+    return t + ((l.days_worked || 0) * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0);
+  }, 0);
   const logByStaffId = Object.fromEntries((staffLogs || []).map(l => [l.staff_id, l]));
 
   const bookNights = bookingForm.check_in && bookingForm.check_out
@@ -571,20 +596,22 @@ export default function VgAccommodation() {
               <div className="rounded-2xl border border-[rgba(122,112,94,0.15)] bg-[rgba(255,252,247,0.95)] p-5 mt-4 animate-in slide-in-from-top-2">
                 <p className="text-[0.6rem] uppercase tracking-[0.12em] text-[rgba(75,71,65,0.4)] mb-3">Staff Cost — {MS[month-1]} {year}</p>
                 {(staffLogs || []).map(l => {
-                  const baseSalary = (l.days_worked || 0) * (l.vg_staff?.daily_rate || 0) + (l.bonus || 0);
-                  const advance = l.advance || 0;
-                  const net = baseSalary - advance;
+                  const useNewMethod = l.total_cash_paid != null && l.total_cash_paid > 0;
+                  const farmCost = useNewMethod
+                    ? (l.total_cash_paid || 0) + (l.staff_expenses || 0)
+                    : ((l.days_worked || 0) * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0);
+                  const days = useNewMethod ? l.days_worked : (l.days_worked || 0);
                   return (
                     <div key={l.id} className="flex items-center justify-between text-[0.8rem] py-2 border-b border-[rgba(122,112,94,0.06)] last:border-0 gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="text-[#2b2b2b]">{l.vg_staff?.name || 'Unknown'}</p>
                         <p className="text-[0.68rem] text-[rgba(75,71,65,0.5)]">
-                          {l.days_worked || 0} days · R {l.vg_staff?.daily_rate || 0}/day
+                          {days} days · R {l.vg_staff?.daily_rate || 0}/day
                           {l.bonus ? ` · +${formatCurrency(l.bonus)} bonus` : ''}
-                          {advance ? ` · −${formatCurrency(advance)} advance` : ''}
+                          {useNewMethod && l.staff_expenses ? ` · ${formatCurrency(l.staff_expenses)} expenses` : ''}
                         </p>
                       </div>
-                      <p className="text-[#c2a66d] shrink-0">{formatCurrency(net)}</p>
+                      <p className="text-[#c2a66d] shrink-0">{formatCurrency(farmCost)}</p>
                     </div>
                   );
                 })}

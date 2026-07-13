@@ -247,7 +247,10 @@ export default function VgDashboard() {
   const totalBookingRevenue = (bookings||[]).reduce((s,r) => s + (r.total||0), 0);
   const totalRevenue = totalSalesRevenue + totalBookingRevenue;
   const totalExpenses = (expenses||[]).reduce((s,r) => s + r.amount, 0);
-  const totalStaffCost = (staffLogs||[]).reduce((s,r) => s + ((r.days_worked * (r.vg_staff?.daily_rate||0)) + (r.bonus||0)), 0);
+  const totalStaffCost = (staffLogs||[]).reduce((s,r) => {
+    if (r.total_cash_paid != null && r.total_cash_paid > 0) return s + (r.total_cash_paid || 0) + (r.staff_expenses || 0);
+    return s + ((r.days_worked || 0) * (r.vg_staff?.daily_rate||0)) + (r.bonus||0) - (r.advance||0);
+  }, 0);
   const totalCosts = totalExpenses + totalStaffCost;
   const netProfit = totalRevenue - totalCosts;
   const totalSheep = (livestock||[]).filter(r => r.animal_type === 'sheep').reduce((s,r) => s + (r.closing_count||0), 0);

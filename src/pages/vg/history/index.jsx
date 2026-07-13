@@ -39,7 +39,10 @@ function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCosts
       costs = (unitCostsData || []).filter(c => inMonth(c.date)).reduce((t, c) => t + c.amount, 0);
     } else if (category === 'staff') {
       const logs = (staffLogsData || []).filter(l => l.month === month);
-      const staffCost = logs.reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0)), 0);
+      const staffCost = logs.reduce((t, l) => {
+        if (l.total_cash_paid != null && l.total_cash_paid > 0) return t + (l.total_cash_paid || 0) + (l.staff_expenses || 0);
+        return t + ((l.days_worked || 0) * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0);
+      }, 0);
       const maintCost = (unitCostsData || []).filter(c => inMonth(c.date)).reduce((t, c) => t + c.amount, 0);
       costs = staffCost + maintCost;
       revenue = 0;
@@ -55,7 +58,10 @@ function buildMonthlyData(year, salesData, expensesData, bookingsData, unitCosts
       costs += (unitCostsData || []).filter(c => inMonth(c.date)).reduce((t, c) => t + c.amount, 0);
       // Staff
       const logs = (staffLogsData || []).filter(l => l.month === month);
-      costs += logs.reduce((t, l) => t + ((l.days_worked * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0)), 0);
+      costs += logs.reduce((t, l) => {
+        if (l.total_cash_paid != null && l.total_cash_paid > 0) return t + (l.total_cash_paid || 0) + (l.staff_expenses || 0);
+        return t + ((l.days_worked || 0) * (l.vg_staff?.daily_rate || 0)) + (l.bonus || 0) - (l.advance || 0);
+      }, 0);
     } else {
       // Produce category filter
       revenue = (salesData || []).filter(s => inMonth(s.date) && s.vg_products?.category === category).reduce((t, s) => t + s.sell_price_actual * s.units, 0);
