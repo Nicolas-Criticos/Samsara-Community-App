@@ -222,6 +222,7 @@ export default function VgProduce() {
   });
   const [orderSaving, setOrderSaving] = useState(false);
   const [orderMessage, setOrderMessage] = useState('');
+  const [fromSam, setFromSam] = useState(false);
 
   const { data: products } = useQuery({
     queryKey: ['vg', 'products', activeCategory],
@@ -327,17 +328,33 @@ export default function VgProduce() {
       patch.sell_price_actual = '';
       patch.units = 1;
     } else {
-      patch.sell_price_actual = p?.default_sell_price || '';
+      const basePrice = p?.default_sell_price || 0;
+      patch.sell_price_actual = fromSam ? (basePrice * 0.3).toFixed(2) : (basePrice || '');
       patch.kg_weight = '';
       patch.units = 1;
     }
     updateOrderItem(idx, patch);
   }
+
+  function toggleFromSam() {
+    const next = !fromSam;
+    setFromSam(next);
+    setOrderForm(f => ({
+      ...f,
+      items: f.items.map(it => {
+        const p = (products || []).find(x => x.id === it.product_id);
+        if (!p || p.pricing_type === 'per_kg') return it;
+        const base = Number(p.default_sell_price || 0);
+        return { ...it, sell_price_actual: next ? (base * 0.3).toFixed(2) : String(base) };
+      }),
+    }));
+  }
   function orderItemLineTotal(item) {
     const p = (products || []).find(x => x.id === item.product_id);
     if (!p) return 0;
+    const samMultiplier = fromSam ? 0.3 : 1;
     if (p.pricing_type === 'per_kg') {
-      return Number(item.kg_weight || 0) * Number(p.default_sell_price || 0);
+      return Number(item.kg_weight || 0) * Number(p.default_sell_price || 0) * samMultiplier;
     }
     return Number(item.sell_price_actual || 0) * Number(item.units || 0);
   }
@@ -364,7 +381,7 @@ export default function VgProduce() {
         const isPerKg = p?.pricing_type === 'per_kg';
         const kg = isPerKg ? Number(it.kg_weight || 0) : null;
         const price = isPerKg
-          ? kg * Number(p?.default_sell_price || 0)
+          ? kg * Number(p?.default_sell_price || 0) * (fromSam ? 0.3 : 1)
           : Number(it.sell_price_actual || 0);
         return {
           date: orderForm.date,
@@ -381,6 +398,7 @@ export default function VgProduce() {
       const { error: salesErr } = await insertSalesBulk(rows);
       if (salesErr) throw salesErr;
       qc.invalidateQueries({ queryKey: ['vg', 'sales'] });
+      setFromSam(false);
       setOrderMessage('Order logged.');
       setOrderForm({
         date: new Date().toISOString().slice(0,10),
@@ -516,7 +534,20 @@ export default function VgProduce() {
         {/* Log a Sale (or multi-item Order for meat) */}
         {activeCategory === 'meat' ? (
           <section className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] p-6">
-            <p className="text-[0.65rem] uppercase tracking-[0.18em] text-[rgba(75,71,65,0.5)] mb-5">Log Meat Order</p>
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-[0.65rem] uppercase tracking-[0.18em] text-[rgba(75,71,65,0.5)]">Log Meat Order</p>
+              <button
+                type="button"
+                onClick={toggleFromSam}
+                className={`rounded-full px-4 py-1.5 text-[0.65rem] uppercase tracking-[0.12em] shadow-none hover:scale-100 transition-all ${
+                  fromSam
+                    ? 'bg-[rgba(194,166,109,0.9)] text-white'
+                    : 'bg-transparent border border-[rgba(194,166,109,0.5)] text-[rgba(194,166,109,0.8)] hover:bg-[rgba(194,166,109,0.1)]'
+                }`}
+              >
+                {fromSam ? '✓ From Sam (30%)' : 'From Sam'}
+              </button>
+            </div>
             <form onSubmit={logOrder}>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-5">
                 <div>
