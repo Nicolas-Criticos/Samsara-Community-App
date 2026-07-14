@@ -315,7 +315,7 @@ function UnitModal({ unit, onClose, onSaved }) {
 
 // ─── Staff Log Row ─────────────────────────────────────────────────────────
 
-function StaffLogRow({ staff, log, year, month, isAdmin }) {
+function StaffLogRow({ staff, log, year, month, isAdmin, onEdit }) {
   const { data: session } = useAuthSession();
   const qc = useQueryClient();
   const [totalCash, setTotalCash] = useState(log?.total_cash_paid ?? '');
@@ -381,6 +381,7 @@ function StaffLogRow({ staff, log, year, month, isAdmin }) {
           </div>
         )}
         <button onClick={save} disabled={saving} className="rounded-full px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.1em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">{saving ? '…' : 'Save'}</button>
+        {isAdmin && <button onClick={() => onEdit(staff)} className="rounded-full px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(122,112,94,0.3)] text-[rgba(75,71,65,0.6)] shadow-none hover:scale-100 hover:bg-[rgba(122,112,94,0.1)]">Edit</button>}
         {isAdmin && <button onClick={async () => { if (confirm(`Remove ${staff.name}?`)) { await deleteStaff(staff.id); qc.invalidateQueries({ queryKey: ['vg', 'staff'] }); }}} className="rounded-full px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.1em] bg-transparent border border-[rgba(194,100,80,0.3)] text-[rgba(194,100,80,0.7)] shadow-none hover:scale-100 hover:bg-[rgba(194,100,80,0.08)]">Remove</button>}
       </div>
     </div>
@@ -835,7 +836,7 @@ export default function VgAccommodation() {
           ) : (
             <div className="rounded-2xl border border-[rgba(122,112,94,0.2)] bg-[rgba(255,252,247,0.95)] px-5 py-2">
               {(staff || []).map(s => (
-                <StaffLogRow key={s.id} staff={s} log={logByStaffId[s.id]} year={year} month={month} isAdmin={isAdmin} />
+                <StaffLogRow key={`${s.id}-${year}-${month}`} staff={s} log={logByStaffId[s.id]} year={year} month={month} isAdmin={isAdmin} onEdit={(st) => setStaffModal({ staff: st })} />
               ))}
               {isAdmin && (
                 <div className="flex justify-end py-3 border-t border-[rgba(122,112,94,0.1)] mt-2">
