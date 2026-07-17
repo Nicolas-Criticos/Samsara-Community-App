@@ -6,6 +6,7 @@ import { useCurrentMember } from '../hooks/useCurrentMember.js';
 import { useIsAdmin } from '../hooks/useCurrentMember.js';
 import { formatDate, capitalize, formatCurrency } from '../../../lib/vg/helpers.js';
 import { MONTH_SHORT, MEMBER_COLORS } from '../../../lib/vg/constants.js';
+import { uploadReviewPhoto } from '../../../lib/storage.js';
 
 const STATUS_PILL = {
   open: 'bg-emerald-100 text-emerald-800',
@@ -250,22 +251,68 @@ function CompletionSummary({ project, onClose }) {
     queryFn: () => supabase.from('project_reviews').select('*').eq('project_id', project.id).maybeSingle().then(r => r.data),
   });
 
-  const [reflection, setReflection] = useState('');
+  const [formData, setFormData] = useState({
+    final_result: '',
+    successes: '',
+    learning_curves: '',
+    rooms_to_improve: '',
+    overall_rating: 3,
+  });
+  const [photos, setPhotos] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (review?.content) setReflection(review.content); }, [review]);
+  useEffect(() => {
+    if (review) {
+      setFormData({
+        final_result: review.final_result || '',
+        successes: review.successes || '',
+        learning_curves: review.learning_curves || '',
+        rooms_to_improve: review.rooms_to_improve || '',
+        overall_rating: review.overall_rating || 3,
+      });
+      if (review.photos) setPhotos(review.photos);
+    }
+  }, [review]);
 
   const totalCost = (bom || []).reduce((s, i) => s + i.quantity * i.unit_cost, 0);
-  const completedTasks = (tasks || []).filter(t => t.status === 'done').length;
+  const completedTasks = (tasks || []).filter(t => t.status === 'Completed').length;
   const duration = daysCount(project.start_date, project.completed_at || project.end_date);
 
-  async function saveReflection() {
+  async function handlePhotoUpload(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      const urls = await Promise.all(files.map(f => uploadReviewPhoto(project.id, f)));
+      setPhotos(prev => [...prev, ...urls]);
+    } catch (err) {
+      console.error('Photo upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function saveReview() {
+    if (!formData.final_result.trim()) return;
     setSaving(true);
     try {
+      const row = {
+        project_id: project.id,
+        completion_date: project.completed_at ? project.completed_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        final_result: formData.final_result,
+        successes: formData.successes || null,
+        learning_curves: formData.learning_curves || null,
+        rooms_to_improve: formData.rooms_to_improve || null,
+        overall_rating: formData.overall_rating,
+        total_cost: totalCost || null,
+        bom_summary: (bom || []).map(i => `${i.name} x${i.quantity}`).join(', ') || null,
+        photos: photos.length ? photos : null,
+      };
       if (review) {
-        await supabase.from('project_reviews').update({ content: reflection }).eq('id', review.id);
+        await supabase.from('project_reviews').update(row).eq('id', review.id);
       } else {
-        await supabase.from('project_reviews').insert({ project_id: project.id, realm: 'vrischgewagt', content: reflection });
+        await supabase.from('project_reviews').insert(row);
       }
       qc.invalidateQueries({ queryKey: ['vg', 'review', project.id] });
     } finally { setSaving(false); }
@@ -330,18 +377,78 @@ function CompletionSummary({ project, onClose }) {
             </div>
           )}
 
-          {/* Reflection notes */}
-          <div>
-            <p className="text-[0.6rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.45)] mb-2">Reflection Notes</p>
-            <textarea
-              value={reflection}
-              onChange={e => setReflection(e.target.value)}
-              rows={4}
-              placeholder="What went well? What would you do differently? Key learnings…"
-              className="w-full bg-[rgba(122,112,94,0.04)] border border-[rgba(122,112,94,0.15)] rounded-xl px-4 py-3 text-[0.85rem] outline-none resize-none focus:border-[rgba(107,127,94,0.4)] text-[#2b2b2b] leading-relaxed placeholder:text-[rgba(75,71,65,0.3)]"
-            />
-            <button onClick={saveReflection} disabled={saving} className="mt-2 rounded-full px-5 py-2 text-[0.65rem] uppercase tracking-[0.12em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">
-              {saving ? 'Saving…' : 'Save Notes'}
+          {/* Review Form */}
+          <div className="space-y-4">
+            <p className="text-[0.6rem] uppercase tracking-[0.14em] text-[rgba(75,71,65,0.45)]">Project Review</p>
+
+            {/* Overall Rating */}
+            <div>
+              <label className="block text-[0.6rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.4)] mb-1.5">Overall Rating</label>
+              <div className="flex gap-1">
+                {[1,2,3,4,5].map(n => (
+                  <button key={n} onClick={() => setFormData(f => ({...f, overall_rating: n}))}
+                    className={`w-8 h-8 rounded-full text-sm shadow-none hover:scale-110 transition-all ${formData.overall_rating >= n ? 'bg-[#c2a66d] text-white' : 'bg-[rgba(122,112,94,0.08)] text-[rgba(75,71,65,0.4)]'}`}>
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Final Result */}
+            <div>
+              <label className="block text-[0.6rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.4)] mb-1">Final Result *</label>
+              <textarea value={formData.final_result} onChange={e => setFormData(f => ({...f, final_result: e.target.value}))}
+                rows={3} placeholder="What was the outcome?"
+                className="w-full bg-[rgba(122,112,94,0.04)] border border-[rgba(122,112,94,0.15)] rounded-xl px-4 py-3 text-[0.85rem] outline-none resize-none focus:border-[rgba(107,127,94,0.4)] text-[#2b2b2b] leading-relaxed placeholder:text-[rgba(75,71,65,0.3)]" />
+            </div>
+
+            {/* Successes */}
+            <div>
+              <label className="block text-[0.6rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.4)] mb-1">Successes</label>
+              <textarea value={formData.successes} onChange={e => setFormData(f => ({...f, successes: e.target.value}))}
+                rows={2} placeholder="What went well?"
+                className="w-full bg-[rgba(122,112,94,0.04)] border border-[rgba(122,112,94,0.15)] rounded-xl px-4 py-3 text-[0.85rem] outline-none resize-none focus:border-[rgba(107,127,94,0.4)] text-[#2b2b2b] leading-relaxed placeholder:text-[rgba(75,71,65,0.3)]" />
+            </div>
+
+            {/* Learning Curves */}
+            <div>
+              <label className="block text-[0.6rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.4)] mb-1">Learning Curves</label>
+              <textarea value={formData.learning_curves} onChange={e => setFormData(f => ({...f, learning_curves: e.target.value}))}
+                rows={2} placeholder="What would you do differently?"
+                className="w-full bg-[rgba(122,112,94,0.04)] border border-[rgba(122,112,94,0.15)] rounded-xl px-4 py-3 text-[0.85rem] outline-none resize-none focus:border-[rgba(107,127,94,0.4)] text-[#2b2b2b] leading-relaxed placeholder:text-[rgba(75,71,65,0.3)]" />
+            </div>
+
+            {/* Rooms to Improve */}
+            <div>
+              <label className="block text-[0.6rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.4)] mb-1">Rooms to Improve</label>
+              <textarea value={formData.rooms_to_improve} onChange={e => setFormData(f => ({...f, rooms_to_improve: e.target.value}))}
+                rows={2} placeholder="Areas for improvement next time"
+                className="w-full bg-[rgba(122,112,94,0.04)] border border-[rgba(122,112,94,0.15)] rounded-xl px-4 py-3 text-[0.85rem] outline-none resize-none focus:border-[rgba(107,127,94,0.4)] text-[#2b2b2b] leading-relaxed placeholder:text-[rgba(75,71,65,0.3)]" />
+            </div>
+
+            {/* Photos */}
+            <div>
+              <label className="block text-[0.6rem] uppercase tracking-[0.1em] text-[rgba(75,71,65,0.4)] mb-1.5">Photos</label>
+              {photos.length > 0 && (
+                <div className="flex gap-2 flex-wrap mb-2">
+                  {photos.map((url, i) => (
+                    <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-[rgba(122,112,94,0.15)]">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button onClick={() => setPhotos(p => p.filter((_, j) => j !== i))}
+                        className="absolute top-0 right-0 bg-[rgba(0,0,0,0.5)] text-white text-[0.5rem] w-4 h-4 flex items-center justify-center rounded-bl shadow-none hover:scale-100 p-0">×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <label className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.1em] bg-[rgba(122,112,94,0.08)] text-[rgba(75,71,65,0.6)] cursor-pointer hover:bg-[rgba(122,112,94,0.14)] transition-colors">
+                {uploading ? 'Uploading…' : '📷 Add Photos'}
+                <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
+              </label>
+            </div>
+
+            <button onClick={saveReview} disabled={saving || !formData.final_result.trim()}
+              className="w-full rounded-full py-3 text-[0.65rem] uppercase tracking-[0.12em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100 disabled:opacity-50">
+              {saving ? 'Saving…' : review ? 'Update Review' : 'Save Review'}
             </button>
           </div>
         </div>
@@ -356,7 +463,6 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
   const qc = useQueryClient();
   const isAdmin = useIsAdmin();
   const [taskTitle, setTaskTitle] = useState('');
-  const [taskDue, setTaskDue] = useState('');
   const [showCompletion, setShowCompletion] = useState(false);
 
   const { data: tasks } = useQuery({
@@ -364,20 +470,20 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
     queryFn: () => supabase.from('project_tasks').select('*').eq('project', project.id).order('created_at').then(r => r.data || []),
   });
 
-  const completedCount = (tasks || []).filter(t => t.status === 'done').length;
+  const completedCount = (tasks || []).filter(t => t.status === 'Completed').length;
   const progress = project.start_date ? progressPct(project.start_date, project.end_date) : (tasks?.length ? Math.round((completedCount / tasks.length) * 100) : 0);
 
   async function toggleTask(task) {
-    await supabase.from('project_tasks').update({ status: task.status === 'done' ? 'todo' : 'done' }).eq('id', task.id);
+    await supabase.from('project_tasks').update({ status: task.status === 'Completed' ? 'Pending' : 'Completed' }).eq('id', task.id);
     qc.invalidateQueries({ queryKey: ['vg', 'tasks', project.id] });
   }
 
   async function addTask(e) {
     e.preventDefault();
     if (!taskTitle.trim()) return;
-    await supabase.from('project_tasks').insert({ project: project.id, name: taskTitle.trim(), status: 'todo', due_date: taskDue || null });
+    await supabase.from('project_tasks').insert({ project: project.id, name: taskTitle.trim(), status: 'Pending' });
     qc.invalidateQueries({ queryKey: ['vg', 'tasks', project.id] });
-    setTaskTitle(''); setTaskDue('');
+    setTaskTitle('');
   }
 
   async function markComplete() {
@@ -468,19 +574,16 @@ function ProjectDetail({ project, onClose, onEdit, members }) {
             <div className="space-y-0.5 mb-3">
               {(tasks || []).map(t => (
                 <div key={t.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-[rgba(122,112,94,0.04)] cursor-pointer" onClick={() => toggleTask(t)}>
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${t.status === 'done' ? 'bg-[#6b7f5e] border-[#6b7f5e]' : 'border-[rgba(122,112,94,0.3)]'}`} style={t.status === 'done' ? { backgroundColor: color, borderColor: color } : {}}>
-                    {t.status === 'done' && <span className="text-white text-[0.5rem]">✓</span>}
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${t.status === 'Completed' ? 'bg-[#6b7f5e] border-[#6b7f5e]' : 'border-[rgba(122,112,94,0.3)]'}`} style={t.status === 'Completed' ? { backgroundColor: color, borderColor: color } : {}}>
+                    {t.status === 'Completed' && <span className="text-white text-[0.5rem]">✓</span>}
                   </div>
-                  <span className={`flex-1 text-[0.8rem] ${t.status === 'done' ? 'line-through text-[rgba(75,71,65,0.35)]' : 'text-[#2b2b2b]'}`}>{t.name || t.title}</span>
-                  {t.due_date && <span className="text-[0.62rem] text-[rgba(75,71,65,0.35)]">{formatDate(t.due_date)}</span>}
+                  <span className={`flex-1 text-[0.8rem] ${t.status === 'Completed' ? 'line-through text-[rgba(75,71,65,0.35)]' : 'text-[#2b2b2b]'}`}>{t.name || t.title}</span>
                 </div>
               ))}
             </div>
             <form onSubmit={addTask} className="flex gap-2">
               <input placeholder="Add a task…" value={taskTitle} onChange={e => setTaskTitle(e.target.value)}
                 className="flex-1 bg-transparent border-b border-[rgba(122,112,94,0.25)] px-0 py-1.5 text-[0.8rem] outline-none placeholder:text-[rgba(75,71,65,0.3)]" />
-              <input type="date" value={taskDue} onChange={e => setTaskDue(e.target.value)}
-                className="w-28 bg-transparent border-b border-[rgba(122,112,94,0.25)] px-0 py-1.5 text-[0.75rem] outline-none text-[rgba(75,71,65,0.6)]" />
               <button type="submit" className="rounded-full px-3 py-1 text-[0.6rem] uppercase tracking-[0.08em] bg-[rgba(107,127,94,0.85)] text-white shadow-none hover:scale-100">+</button>
             </form>
           </div>

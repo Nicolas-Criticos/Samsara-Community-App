@@ -6,6 +6,7 @@ const ITEMS = [
   { to: "/vg/produce", end: false, icon: "🫒", label: "Produce" },
   { to: "/vg/accommodation", end: false, icon: "🏡", label: "Stay" },
   { to: "/vg/history", end: false, icon: "📊", label: "History" },
+  { to: "/vg/inventory", end: false, icon: "🔧", label: "Inventory" },
 ];
 
 export default function VgBottomNav() {

@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: "/vg/produce", end: false, icon: "🫒", label: "Produce" },
   { to: "/vg/accommodation", end: false, icon: "🏡", label: "Accommodation" },
   { to: "/vg/history", end: false, icon: "📊", label: "History" },
+  { to: "/vg/inventory", end: false, icon: "🔧", label: "Inventory" },
 ];
 
 export default function VgSidebar() {
