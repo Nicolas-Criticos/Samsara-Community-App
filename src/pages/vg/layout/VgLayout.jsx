@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/vg/animals', label: 'Animals', icon: '🐑' },
   { to: '/vg/produce', label: 'Produce', icon: '🫒' },
   { to: '/vg/accommodation', label: 'Rooms', icon: '🏡' },
+  { to: '/vg/inventory', label: 'Inventory', icon: '📦' },
   { to: '/vg/history', label: 'History', icon: '📊' },
 ];
 
@@ -17,6 +18,7 @@ const BOTTOM_NAV = [
   { to: '/vg/animals', label: 'Animals', icon: '🐑' },
   { to: '/vg/produce', label: 'Produce', icon: '🫒' },
   { to: '/vg/accommodation', label: 'Rooms', icon: '🏡' },
+  { to: '/vg/inventory', label: 'Inventory', icon: '📦' },
   { to: '/vg/history', label: 'History', icon: '📊' },
 ];
 
