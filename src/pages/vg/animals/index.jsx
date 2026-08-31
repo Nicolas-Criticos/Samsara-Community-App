@@ -110,9 +110,9 @@ function YearTable({ animalType, year, rows, onSave }) {
   const categories = animalType === 'sheep' ? ['ewe', 'ram', 'ewe_lamb', 'ram_lamb'] : ['cow', 'bull', 'calf'];
 
   function getTotal(row) {
-    const base = categories.reduce((s, c) => s + (row[c] || 0), 0);
-    // Include legacy 'lamb' rows (before ewe_lamb/ram_lamb split)
-    return animalType === 'sheep' ? base + (row.lamb || 0) : base;
+    // Headcount totals only include the live animal categories shown in the table.
+    // Informational event columns (and the legacy unsplit lamb field) are excluded.
+    return categories.reduce((sum, category) => sum + (row[category] || 0), 0);
   }
 
   return (
