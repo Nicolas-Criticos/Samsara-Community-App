@@ -14,6 +14,7 @@ const BOOKING_SOURCES = [
   { value: 'perfect_hideaways', label: 'Perfect Hideaways', commission: 0.15 },
   { value: 'abang_africa', label: 'Abang Africa', commission: 0.10 },
   { value: 'mask_expeditions', label: 'Mask Expeditions', commission: 0.10 },
+  { value: 'discovery', label: 'Discovery', commission: 0.25 },
 ];
 
 function getCommission(source) {
